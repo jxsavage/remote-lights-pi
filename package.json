@@ -7,7 +7,8 @@
     "start": "node --inspect=5858 -r ts-node/register src/index.ts",
     "dev": "./node_modules/nodemon/bin/nodemon.js",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "find-node": "ps -aef | grep node"
   },
   "author": "",
   "license": "ISC",
