@@ -1,6 +1,7 @@
-require('dotenv').config()
+import * as dotenv from 'dotenv';
 import {MicroController} from './MicroController/MicroController';
 import {SocketClient} from './SocketClient/SocketClient';
+dotenv.config();
 interface LaunchEnv {
   MODE: string;
   SERVER: string;
