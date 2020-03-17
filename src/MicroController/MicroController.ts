@@ -6,8 +6,8 @@ import {
   MicroInfoResponse,
   WebMicroInfo,
   BaseMicroResponse} from 'Shared/MicroTypes';
-import {MicroMethod, MicroCommand, MicroEffect} from 'Shared/MicroCommands';
-import {Convert} from 'Shared/MicroShared';
+import {MicroMethod, MicroCommand, MicroEffect} from '../Shared/MicroCommands';
+import {Convert} from '../Shared/MicroShared';
 const parser = new SerialPort.parsers.Readline({delimiter:'\n', encoding: 'utf8'});
 const openOptions = {
   autoOpen: true,

@@ -70,4 +70,3 @@ export class SocketClient {
   }
 }
 export default SocketClient;
-module.exports = SocketClient;

@@ -4,20 +4,19 @@
     "lib": [
       "ES2019"
     ],
-    "baseUrl": ".",
+    "baseUrl": "./src",
     "paths": {
       "Shared/*": [
-        "sub-modules/remote-lights-shared/src/*",
-        "sub-modules/remote-lights-shared/types/*"
+        "Shared/*"
       ],
       "SocketClient/*": [
-        "src/SocketClient/*"
+        "SocketClient/*"
       ],
       "SocketServer/*": [
-        "src/SocketServer/*"
+        "SocketServer/*"
       ],
       "MicroController/*": [
-        "src/MicroController/*"
+        "MicroController/*"
       ]
 
     },
@@ -33,10 +32,9 @@
     "importHelpers": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true
+    "outDir": "dist"
   },
   "include": [
-    "src/**/*",
-    "sub-modules/**/*"
+    "src/**/*"
   ]
 }
