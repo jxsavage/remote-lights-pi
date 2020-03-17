@@ -1,12 +1,13 @@
 import SerialPort from 'serialport';
 // tslint:disable-next-line
 //import Readline from '@serialport/parser-readline';
-import {MicroMethod, MicroCommand, MicroEffect,
+import {
   ControllerMicroSegment, MicroBrightnessResponse,
   MicroInfoResponse,
   WebMicroInfo,
-  BaseMicroResponse} from '../../sub-modules/remote-lights-shared/types/MicroTypes';
-import {Convert} from '../../sub-modules/remote-lights-shared/src/MicroShared';
+  BaseMicroResponse} from 'Shared/MicroTypes';
+import {MicroMethod, MicroCommand, MicroEffect} from 'Shared/MicroCommands';
+import {Convert} from 'Shared/MicroShared';
 const parser = new SerialPort.parsers.Readline({delimiter:'\n', encoding: 'utf8'});
 const openOptions = {
   autoOpen: true,
