@@ -6,21 +6,8 @@
   "configurations": [
     {
       "type": "node",
-      "request": "launch",
-      "name": "PiClient",
-      "skipFiles": [
-        "<node_internals>/**"
-      ],
-      "program": "${workspaceFolder}/src/index.ts",
-      "preLaunchTask": "tsc: build - tsconfig.json",
-      "outFiles": [
-        "${workspaceFolder}/dist/**/*.js"
-      ]
-    },
-    {
-      "type": "node",
       "request": "attach",
-      "name": "Attach to Process",
+      "name": "Attach to Server",
       "port": 5858,
       "restart": true,
       "protocol": "inspector"
