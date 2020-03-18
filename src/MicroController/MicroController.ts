@@ -1,95 +1,83 @@
 import SerialPort from 'serialport';
-// tslint:disable-next-line
-//import Readline from '@serialport/parser-readline';
 import {
   ControllerMicroSegment, MicroBrightnessResponse,
-  MicroInfoResponse,
-  WebMicroInfo,
-  BaseMicroResponse} from 'Shared/MicroTypes';
-import {MicroMethod, MicroCommand, MicroEffect} from '../Shared/MicroCommands';
-import {Convert} from '../Shared/MicroShared';
-const parser = new SerialPort.parsers.Readline({delimiter:'\n', encoding: 'utf8'});
+  MicroInfoResponse, WebMicroInfo,
+  SetSegmentEffectQuery, BaseMicroResponse
+} from 'Shared/MicroTypes';
+import {MicroMethod, MicroCommand,
+  MicroEffect, WebEffect, SegmentCommand} from '../Shared/MicroCommands';
+import {Convert, SharedMicroState} from '../Shared/MicroShared';
+const parser = new SerialPort.parsers
+  .Readline({delimiter:'\n', encoding: 'utf8'});
 const openOptions = {
   autoOpen: true,
   baudRate: 115200,
   parser: parser,
   lock: false,
 }
-const COMMAND = {
-  BRIGHTNESS: 0,
-  EFFECT: 1,
-  INFO: 2
-}
-
-const METHOD = {
-  GET: 0,
-  SET: 1
-}
-const EFFECT = {
-  COLORWAVES: 0,
-  BLENDWAVE: 1
-}
-const effects = [
-  'COLORWAVES',
-  'BLENDWAVE'
-];
 export class MicroController {
   id: string;
   serial: SerialPort;
   initialized: boolean;
   socket: SocketIO.Socket;
-  state: WebMicroInfo | null;
+  state: SharedMicroState | null;
+  static cmdGetBrightness = JSON.stringify({
+    cmd: MicroCommand.Brightness,
+    method: MicroMethod.Get,
+  })+'\n';
+  static cmdGetInfo = JSON.stringify({
+    cmd: MicroCommand.Info,
+    method: MicroMethod.Get
+  })+'\n';
   
-  constructor(portInfo: SerialPort.PortInfo, piId: string, socket: SocketIO.Socket, microName: string) {
-    const {path} = portInfo;
+  constructor(
+    portInfo: SerialPort.PortInfo,
+    piId: string, serverSocket: SocketIO.Socket,
+    microName: string
+  ){
+    
     this.state = null;
-    console.log('Connecting to teensy on port', path);
+    this.initialized = false;
+    this.socket = serverSocket;
+    this.id = `${piId}.${microName}`;
+    
+    const {path} = portInfo;
     this.serial = new SerialPort (
       path,
       openOptions
     );
-    this.id = `${piId}.${microName}`
-    this.serial.pipe(parser);
-    this.socket = socket;
+    console.log('Connecting to teensy on port', path);
+    
+    const {
+      // Members
+      id, socket, serial,
+      // Functions
+      emitSegments, emitBrightness, setBrightness,
+      setSegmentEffect, dataHandler
+    } = this;
+    
     // this.socket.on(`getEffect.${this.id}`, this.emitEffect);
     //this.socket.on(`setEffect.${this.id}`, this.setEffect);
-    this.socket.on(`getSegments.${this.id}`, this.emitSegments);
-    this.socket.on(`getBrightness.${this.id}`, (socketId) => {
-      this.socket.emit('setWebBrightness', 
-        this.createBrightnessEmit(socketId, this.getBrightness()));
-    });
-    this.socket.on(`setBrightness.${this.id}`, this.setBrightness);
-    this.serial.on('data', this.dataHandler);
-    this.initialized = false;
+    socket.on(`getSegments.${id}`, emitSegments);
+    socket.on(`setSegmentEffect.${id}`, setSegmentEffect);
+    socket.on(`getBrightness.${id}`, emitBrightness);
+    socket.on(`setBrightness.${id}`, setBrightness);
+    serial.on('data', dataHandler);
+    
   }
-  createBrightnessEmit = (socketId: any, brightness: any) => {
+  createBrightnessEmit = (
+  socketId: string, brightness: number
+  ) => {
     return {
       socketId,
       brightness,
       microId: this.id,
     };
   }
-  emitBrightness = (socketId: any) => {
+  emitBrightness = (socketId: string) => {
     this.socket.emit('setWebBrightness', 
       this.createBrightnessEmit(socketId, this.getBrightness()));
   }
-  /**
-   * Emits effect back to sender
-   * @param {string} SocketId
-   */
-  // emitEffect = (socketId: any) => {
-  //   this.socket.emit('setWebEffect', {
-  //     microId: this.id,
-  //     effect: this.getEffect(),
-  //     socketId
-  //   });
-  // }
-  /**
-   * @returns {Promise<string>} effect
-   */
-  // getEffect = () => {
-  //   return this.state.effect;
-  // }
   emitSegments = (socketId: string) => {
     this.socket.emit('setWebSegments', {
       microId: this.id,
@@ -98,62 +86,40 @@ export class MicroController {
     });
   }
   getSegments = () => {
-    if (this.state)
-      return this.state.segments;
+    const {state} = this;
+    if (state)
+      return state.getSegments();
   }
-  /**
-   * @param {string} socketId
-   */
-  queryMicroEffect = (socketId: string) => {
-    const getEffectQuery = JSON.stringify({
-      cmd: COMMAND.EFFECT,
-      method: METHOD.GET,
+  setSegmentEffect = (query: SetSegmentEffectQuery) => {
+    const {effect, segment} = query;
+    const {state} = this;
+    if(state) {
+      state.setSegmentEffect(effect, segment);
+    }
+    const setEffect = JSON.stringify({
+      cmd: MicroCommand.Segment,
+      method: MicroMethod.Set,
+      prop: SegmentCommand.Effect,
+      segment,
+      value: Convert.webEffectToMicro(effect),
     });
-    this.serial.write(`${getEffectQuery}\n`);
+    this.serial.write(`${setEffect}\n`);
     this.serial.drain();
   }
-  /**
-   * @param {string} effect
-   */
-  // setEffect = ({effect}) => {
-  //   this.state.effect = effect;
-  //   const setEffect = JSON.stringify({
-  //     cmd: COMMAND.EFFECT,
-  //     method: METHOD.SET,
-  //     value: Number(EFFECT[effect]),
-  //   });
-  //   this.serial.write(`${setEffect}\n`);
-  //   this.serial.drain();
-  // }
   dataHandler = (data: string) => {
 
     const handleBrightness = ({value, client}: MicroBrightnessResponse) => {
       const {state, socket, id} = this;
       if (state) {
-        state.brightness = value;
+        state.setBrightness(value);
         socket.emit('setWebBrightness',
           {socketId: client, brightness: value, microId: id});
       } else {
         console.log('state not set when handleBrightness is called...')
       }
     }
-    // const handleEffect = ({value, client}) => {
-    //   this.state.effect = effects[value];
-    //   this.socket.emit('setWebEffect',
-    //     {socketId: client, effect: effects[value], microId: this.id});
-    // }
-    const handleInfo = ({
-      segments, totalLEDs, client, brightness
-    }: MicroInfoResponse) => {
-      const {state} = this;
-      const webSegments = Convert
-        .microSegmentsArrToWeb(segments);
-      this.state = {
-        totalLEDs,
-        brightness,
-        segments: webSegments,
-      };
-      
+    const handleInfo = (infoResponse: MicroInfoResponse) => {
+      this.state = new SharedMicroState(infoResponse);
     }
     const handleResponse = (response: BaseMicroResponse) => {
       if(response.prop === MicroCommand.Brightness) {
@@ -163,7 +129,7 @@ export class MicroController {
       } else if (response.prop === MicroCommand.Info) {
         handleInfo(response as MicroInfoResponse);
       } else {
-        console.log(`ERROR: Unkown response type:\n${response}\n`);
+        console.log(`ERROR: Unkown response type:\n${JSON.stringify(response, null,'  ')}\n`);
       }
     }
     try {
@@ -173,25 +139,19 @@ export class MicroController {
       console.log(`ERROR:\n${err}\nResponse:\n${data.toString()}\n`);
     }
   }
-  // emitBrightness = (socketId) => {
-  //   this.socket.emit('setWebBrightness', {
-  //     microId: this.microId,
-  //     brightness: this.getBrightness(),
-  //     socketId
-  //   });
-  // }
-  /**
-   * @returns {Promise<number>} brightness
-   */
   getBrightness = () => {
     const {state} = this;
-    if (state)
-      return state.brightness;
+    if (state) {
+      return state.getBrightness();
+    } else {
+      throw new Error
+      ('MicroController.getBrightness() called before initialization...');
+    }
   }
   queryMicroBrightness = (socketId: any) => {
     const brightnessQuery = JSON.stringify({
-      cmd: COMMAND.BRIGHTNESS,
-      method: METHOD.GET,
+      cmd: MicroCommand.Brightness,
+      method: MicroMethod.Get,
     });
     this.serial.write(`${brightnessQuery}\n`);
     this.serial.drain();
@@ -199,38 +159,32 @@ export class MicroController {
   setBrightness = (value: number) => {
     const {state} = this;
     if (state) {
-      state.brightness = value;
+      state.setBrightness(value);
     }
     const setBrightness = JSON.stringify({
-      cmd: COMMAND.BRIGHTNESS,
-      method: METHOD.SET,
+      cmd: MicroCommand.Brightness,
+      method: MicroMethod.Set,
       value: Number(value),
     });
     this.serial.write(`${setBrightness}\n`);
     this.serial.drain();
   }
-  intializeSockets = (microId: any) => {
-
-  }
   initialize = ():Promise<MicroController> => {
-    const getInfo = JSON.stringify({
-      cmd: COMMAND.INFO,
-      method: METHOD.GET
-    });
     return new Promise((resolve, reject) => {
+      const initMsg = setInterval(() => console.log('Waiting for initialization...'), 3000);
       const initializing = setInterval((resolve) => {
-        console.log('Waiting for initialization...');
         if(this.state) {
+          console.log(`MicroController ${this.id} Initialized.`);
           this.initialized = true;
           resolve(this);
           clearInterval(initializing);
+          clearInterval(initMsg);
         }
       }, 100, resolve);
 
-      this.serial.write(`${getInfo}\n`);
+      this.serial.write(MicroController.cmdGetInfo);
       this.serial.drain();
     });
   }
 }
-
 export default MicroController;

@@ -14,7 +14,7 @@ const {
 export class SocketClient {
   piId: string;
   initialized: boolean;
-  microMap: Map<any, any>;
+  microMap: Map<MicroController["id"], MicroController>;
   serverSocket: any;
   constructor(serverIp: any, serverPort: any) {
     this.piId = PI_NAME;
@@ -23,7 +23,6 @@ export class SocketClient {
      * @type {Map<string, Teensy>} microMap
      */
     this.microMap = new Map();
-    //192.168.0.105:3001
     this.serverSocket = io.connect(`http://${serverIp}:${serverPort}/server`);
   };
   /**
@@ -41,7 +40,7 @@ export class SocketClient {
       });
     });
   }
-  initializeMicro(): Promise<MicroController[]> {
+  initializeMicro = (): Promise<MicroController[]> => {
     return new Promise((resolve, reject)=>{
       this.scanSerial().then((portInfoArr) => {
         const names = MICRO_NAMES.split(',');
