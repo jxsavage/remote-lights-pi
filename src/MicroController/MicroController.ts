@@ -21,14 +21,8 @@ export class MicroController {
   initialized: boolean;
   socket: SocketIO.Socket;
   state: SharedMicroState | null;
-  static cmdGetBrightness = JSON.stringify({
-    cmd: MicroCommand.Brightness,
-    method: MicroMethod.Get,
-  })+'\n';
-  static cmdGetInfo = JSON.stringify({
-    cmd: MicroCommand.Info,
-    method: MicroMethod.Get
-  })+'\n';
+  static cmdGetBrightness = `${JSON.stringify({cmd: MicroCommand.Brightness, method: MicroMethod.Get,})}\n`;
+  static cmdGetInfo = `${JSON.stringify({cmd: MicroCommand.Info, method: MicroMethod.Get})}\n`;
   
   constructor(
     portInfo: SerialPort.PortInfo,
