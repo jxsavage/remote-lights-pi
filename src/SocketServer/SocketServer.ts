@@ -81,24 +81,13 @@ class PiServer {
         });
       });
   }
-  /**
-   * @param {string[]} microIdArr
-   * @memberof PiServer
-   */
   filterNewMicros = (microIdArr: string[]) => {
     return microIdArr.filter((microId) =>{
       return this.micros.indexOf(microId) == -1;
     });
   }
-  /**
-   * @param {string[]} microIdArr
-   * @memberof PiServer
-   */
   addMicros = (microIdArr: string[]) => {
   }
-  /**
-   * @param {SocketIO.Socket} socket 
-   */
   onGetMicrosListener = (socket: SocketIO.Socket) => {
     const micros = this.micros;
     this.joinMicroChannels(socket, micros);
@@ -106,11 +95,6 @@ class PiServer {
       socket.emit('setMicros', micros);
     });
   }
-  /**
-   * 
-   * @param {SocketIO.Socket} socket 
-   * @param {string[]} microIdArr 
-   */
   joinMicroChannels = (socket: SocketIO.Socket, microIdArr: string[]) => {
     microIdArr.forEach((microId) => {
       socket.join(microId);
