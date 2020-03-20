@@ -19,14 +19,14 @@ export class MicroController {
   id: string;
   serial: SerialPort;
   initialized: boolean;
-  socket: SocketIO.Socket;
+  socket: SocketIOClient.Socket;
   state: SharedMicroState | null;
   static cmdGetBrightness = `${JSON.stringify({cmd: MicroCommand.Brightness, method: MicroMethod.Get,})}\n`;
   static cmdGetInfo = `${JSON.stringify({cmd: MicroCommand.Info, method: MicroMethod.Get})}\n`;
   
   constructor(
     portInfo: SerialPort.PortInfo,
-    piId: string, serverSocket: SocketIO.Socket,
+    piId: string, serverSocket: SocketIOClient.Socket,
     microName: string
   ){
     
@@ -58,6 +58,15 @@ export class MicroController {
     socket.on(`setBrightness.${id}`, setBrightness);
     serial.on('data', dataHandler);
     
+  }
+  getInfo = () => {
+    const {state} = this;
+    if (state) {
+      return state.getState();
+    } else {
+      throw new Error
+      ('MicroController.getBrightness() called before initialization...');
+    }
   }
   createBrightnessEmit = (
   socketId: string, brightness: number
@@ -113,7 +122,8 @@ export class MicroController {
       }
     }
     const handleInfo = (infoResponse: MicroInfoResponse) => {
-      this.state = new SharedMicroState(infoResponse);
+      const webMicroInfo = Convert.microInfoToWeb(this.id, infoResponse);
+      this.state = new SharedMicroState(webMicroInfo);
     }
     const handleResponse = (response: BaseMicroResponse) => {
       if(response.prop === MicroCommand.Brightness) {

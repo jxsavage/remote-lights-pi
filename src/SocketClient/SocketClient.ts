@@ -2,6 +2,7 @@ require('dotenv').config();
 import io from 'socket.io-client';
 import SerialPort from 'serialport';
 import {MicroController} from '../MicroController/MicroController';
+import { WebMicroInfo } from 'Shared/MicroTypes';
 interface Env {
   PI_NAME: string,
   MICRO_NAMES: string,
@@ -15,7 +16,7 @@ export class SocketClient {
   piId: string;
   initialized: boolean;
   microMap: Map<MicroController["id"], MicroController>;
-  serverSocket: any;
+  serverSocket: SocketIOClient.Socket;
   constructor(serverIp: any, serverPort: any) {
     this.piId = PI_NAME;
     this.initialized = false;
@@ -55,15 +56,16 @@ export class SocketClient {
   emitMicros = (microIds: any) => {
     this.serverSocket.emit('addMicros', microIds);
   }
-  initSocket = (microIdArr: any) => {
-    this.serverSocket.emit('initLightClient', microIdArr)
+  initSocket = (microInfoArr: WebMicroInfo[]) => {
+    this.serverSocket.emit('initLightClient', microInfoArr);
   }
   initialize = () => {
     this.initializeMicro().then((microArr)=>{
       microArr.forEach((micro) => {
         this.microMap.set(micro.id, micro);
       });
-      this.initSocket(Array.from(this.microMap.keys()));
+      this.initSocket(Array.from(this.microMap.values())
+        .map(micro => micro.getInfo()));
       this.initialized = true;
     });
   }
