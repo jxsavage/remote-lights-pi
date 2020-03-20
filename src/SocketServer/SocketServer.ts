@@ -1,11 +1,13 @@
 import io from 'socket.io';
+import {WebMicroInfo, WebMicroSegment} from '../Shared/MicroTypes';
+import { WebEffect } from 'Shared/MicroCommands';
 
 /**
  * @property {string[]} micros
  */
 class PiServer {
   server: SocketIO.Server;
-  micros: string[];
+  micros: WebMicroInfo[];
   webClients: Map<any, any>;
   /**
    * @param {number} port
@@ -30,15 +32,15 @@ class PiServer {
         socket.on('addMicros', (microIdArr) => {
           const addedMicros = this.filterNewMicros(microIdArr);
           this.micros = this.micros.concat(addedMicros);
-          addedMicros.map((microId: string) => {
-            socket.join(microId);
+          addedMicros.map((micro) => {
+            socket.join(micro.id);
           })
         });
         socket.on('initLightClient', (microIdArr) => {
           socket.join('lightClients');
           this.micros = this.micros.concat(this.filterNewMicros(microIdArr));
-          this.micros.forEach((microId) => {
-            socket.join(microId);
+          this.micros.forEach((micro) => {
+            socket.join(micro.id);
           });
         });
         socket.on('initWebClient', () => {
@@ -81,9 +83,9 @@ class PiServer {
         });
       });
   }
-  filterNewMicros = (microIdArr: string[]) => {
-    return microIdArr.filter((microId) =>{
-      return this.micros.indexOf(microId) == -1;
+  filterNewMicros = (microInfoArr: WebMicroInfo[]) => {
+    return microInfoArr.filter((microInfo) =>{
+      return this.micros.indexOf(microInfo) == -1;
     });
   }
   addMicros = (microIdArr: string[]) => {
@@ -95,9 +97,9 @@ class PiServer {
       socket.emit('setMicros', micros);
     });
   }
-  joinMicroChannels = (socket: SocketIO.Socket, microIdArr: string[]) => {
-    microIdArr.forEach((microId) => {
-      socket.join(microId);
+  joinMicroChannels = (socket: SocketIO.Socket, microArr: WebMicroInfo[]) => {
+    microArr.forEach((micro) => {
+      socket.join(micro.id);
     })
   }
   addClient(clientConfig: object) {
