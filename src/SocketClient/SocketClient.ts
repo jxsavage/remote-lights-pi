@@ -64,8 +64,9 @@ export class SocketClient {
       microArr.forEach((micro) => {
         this.microMap.set(micro.id, micro);
       });
-      this.initSocket(Array.from(this.microMap.values())
-        .map(micro => micro.getInfo()));
+      const microInfoArr = Array.from(this.microMap.values())
+      .map(micro => micro.getInfo());
+      this.initSocket(microInfoArr);
       this.initialized = true;
     });
   }
