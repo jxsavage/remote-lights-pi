@@ -36,9 +36,9 @@ class PiServer {
             socket.join(micro.id);
           })
         });
-        socket.on('initLightClient', (microIdArr) => {
+        socket.on('initLightClient', (microArr) => {
           socket.join('lightClients');
-          this.micros = this.micros.concat(this.filterNewMicros(microIdArr));
+          this.micros = this.micros.concat(this.filterNewMicros(microArr));
           this.micros.forEach((micro) => {
             socket.join(micro.id);
           });
@@ -76,6 +76,10 @@ class PiServer {
         socket.on('setWebSegments', ({microId, segments, socketId}) => {
           socket.to(socketId).emit(`setSegments.${microId}`, segments);
         });
+        const setWebInfo = (webInfoArr: WebMicroInfo[]) => {
+
+        }
+        socket.on('setWebInfo', setWebInfo);
         this.onGetMicrosListener(socket);
         socket.on('disconnect', () => {
           console.log('socket disconnected', socket.id);
@@ -83,9 +87,13 @@ class PiServer {
         });
       });
   }
-  filterNewMicros = (microInfoArr: WebMicroInfo[]) => {
-    return microInfoArr.filter((microInfo) =>{
-      return this.micros.indexOf(microInfo) == -1;
+  filterNewMicros = (newMicroInfoArr: WebMicroInfo[]) => {
+    const {micros} = this;
+    return newMicroInfoArr.filter((newMicroInfo) =>{
+      const hasMicro = micros.findIndex((currentMicroInfo) =>{
+        return currentMicroInfo.id == newMicroInfo.id;
+      });
+      return hasMicro == -1;
     });
   }
   addMicros = (microIdArr: string[]) => {
