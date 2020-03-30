@@ -97,7 +97,7 @@ export class MicroController {
     const {effect, segment} = query;
     const {state} = this;
     if(state) {
-      state.setSegmentEffect(effect, segment);
+      state.setSegmentEffect(segment, effect);
     }
     const setEffect = JSON.stringify({
       cmd: MicroCommand.Segment,

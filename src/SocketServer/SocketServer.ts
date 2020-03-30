@@ -1,13 +1,18 @@
 import io from 'socket.io';
 import {WebMicroInfo, WebMicroSegment} from '../Shared/MicroTypes';
 import { WebEffect } from 'Shared/MicroCommands';
-
+import {IRemoteLightsState, ByMicroId} from '../Shared/reducers/segments';
+const initialState: IRemoteLightsState = {
+  allMicroIds: [],
+  byMicroId: {}
+}
 /**
  * @property {string[]} micros
  */
 class PiServer {
   server: SocketIO.Server;
   micros: WebMicroInfo[];
+  state: IRemoteLightsState;
   webClients: Map<any, any>;
   /**
    * @param {number} port
@@ -19,6 +24,7 @@ class PiServer {
      * @type {string[]} micros
      */
     this.micros = [];
+    this.state = initialState;
     /**
      * @type {Map<string, SocketIO.Socket>}
      */
@@ -39,6 +45,11 @@ class PiServer {
         socket.on('initLightClient', (microArr) => {
           socket.join('lightClients');
           this.micros = this.micros.concat(this.filterNewMicros(microArr));
+          this.state.allMicroIds = this.micros.map(micro => micro.id);
+          this.state.byMicroId = this.micros.reduce((byMicroId, micro) => {
+            byMicroId[micro.id] = micro;
+            return byMicroId;
+          }, {} as ByMicroId);
           this.micros.forEach((micro) => {
             socket.join(micro.id);
           });
@@ -46,7 +57,7 @@ class PiServer {
         socket.on('initWebClient', () => {
           socket.join('webClients');
           this.webClients.set(socket.id, socket);
-          socket.emit('setMicros', this.micros);
+          socket.emit('setMicros', this.state);
         })
         socket.on('getMicroBrightness', ({microId}) => {
           socket.to(microId).emit(`getBrightness.${microId}`, socket.id);
