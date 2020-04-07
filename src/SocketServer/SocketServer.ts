@@ -1,18 +1,18 @@
 import io from 'socket.io';
 import {WebMicroInfo, WebMicroSegment} from '../Shared/MicroTypes';
 import { WebEffect } from 'Shared/MicroCommands';
-import {IRemoteLightsState, ByMicroId} from '../Shared/reducers/segments';
-const initialState: IRemoteLightsState = {
+import {RemoteLightsState, ByMicroId} from 'Shared/reducers/remoteLights';
+const initialState = {
   allMicroIds: [],
   byMicroId: {}
-}
+};
 /**
  * @property {string[]} micros
  */
 class PiServer {
   server: SocketIO.Server;
   micros: WebMicroInfo[];
-  state: IRemoteLightsState;
+  state: RemoteLightsState;
   webClients: Map<any, any>;
   /**
    * @param {number} port
