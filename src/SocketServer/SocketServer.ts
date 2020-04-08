@@ -1,6 +1,5 @@
 import io from 'socket.io';
-import {WebMicroInfo, WebMicroSegment} from '../Shared/MicroTypes';
-import { WebEffect } from 'Shared/MicroCommands';
+import { WebMicroInfo, WebMicroSegment } from '../Shared/MicroTypes';
 import {RemoteLightsState, ByMicroId} from 'Shared/reducers/remoteLights';
 const initialState = {
   allMicroIds: [],
