@@ -20,11 +20,12 @@ export class SocketClient {
   constructor(serverIp: any, serverPort: any) {
     this.piId = PI_NAME;
     this.initialized = false;
-    /**
-     * @type {Map<string, Teensy>} microMap
-     */
     this.microMap = new Map();
     this.serverSocket = io.connect(`http://${serverIp}:${serverPort}/server`);
+    const {serverSocket} = this;
+    // serverSocket.on('reconnect', () => {
+    //   serverSocket.emit('initLightClient', Array.from(this.microMap.values()));
+    // });
   };
   /**
    * Scans SerialPorts and returns the Teensies based
