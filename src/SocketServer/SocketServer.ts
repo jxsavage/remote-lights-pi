@@ -43,7 +43,8 @@ class PiServer {
           socket.join('webClients');
           this.webClients.set(socket.id, socket);
           const {state} = this;
-          socket.to(socket.id).emit('remoteLightsStateAction', resetState({state}));
+          const resetStateAction = resetState({state});
+          socket.emit('remoteLightsStateAction', resetStateAction);
         });
         socket.on('getMicroBrightness', ({microId}) => {
           socket.to(microId).emit(`getBrightness.${microId}`, socket.id);
