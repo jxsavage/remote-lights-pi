@@ -2,8 +2,7 @@ require('dotenv').config();
 import io from 'socket.io-client';
 import SerialPort from 'serialport';
 import {MicroController} from '../MicroController/MicroController';
-import { WebMicroInfo } from 'Shared/MicroTypes';
-import remoteLights, { RemoteLightsState, initialState, addMicros, AddMicrosStateAction } from 'Shared/reducers/remoteLights';
+import remoteLights, { RemoteLightsState, initialState, addMicros, AddMicrosStateAction } from '../Shared/reducers/remoteLights';
 interface Env {
   PI_NAME: string,
   MICRO_NAMES: string,

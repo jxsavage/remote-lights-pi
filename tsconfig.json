@@ -5,21 +5,6 @@
       "ES2019"
     ],
     "baseUrl": "./src",
-    "paths": {
-      "Shared/*": [
-        "Shared/*"
-      ],
-      "SocketClient/*": [
-        "SocketClient/*"
-      ],
-      "SocketServer/*": [
-        "SocketServer/*"
-      ],
-      "MicroController/*": [
-        "MicroController/*"
-      ]
-
-    },
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
