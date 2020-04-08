@@ -1,6 +1,6 @@
 import io from 'socket.io';
 import { WebMicroInfo } from '../Shared/MicroTypes';
-import {RemoteLightsState, ByMicroId} from '../Shared/reducers/remoteLights';
+import remoteLights, {RemoteLightsState, resetState, AddMicrosStateAction, addMicros} from '../Shared/reducers/remoteLights';
 const initialState = {
   allMicroIds: [],
   byMicroId: {}
@@ -13,20 +13,10 @@ class PiServer {
   micros: WebMicroInfo[];
   state: RemoteLightsState;
   webClients: Map<any, any>;
-  /**
-   * @param {number} port
-   * @property {string[]} client
-   */
   constructor(port: string) {
     this.server = io(port);
-    /**
-     * @type {string[]} micros
-     */
     this.micros = [];
     this.state = initialState;
-    /**
-     * @type {Map<string, SocketIO.Socket>}
-     */
     this.webClients = new Map();
     this.initializeServer();
   }
@@ -41,23 +31,20 @@ class PiServer {
             socket.join(micro.id);
           })
         });
-        socket.on('initLightClient', (microArr) => {
+        socket.on('initLightClient', (addMicrosAction: AddMicrosStateAction) => {
           socket.join('lightClients');
-          this.micros = this.micros.concat(this.filterNewMicros(microArr));
-          this.state.allMicroIds = this.micros.map(micro => micro.id);
-          this.state.byMicroId = this.micros.reduce((byMicroId, micro) => {
-            byMicroId[micro.id] = micro;
-            return byMicroId;
-          }, {} as ByMicroId);
-          this.micros.forEach((micro) => {
-            socket.join(micro.id);
+          this.state = remoteLights(this.state, addMicrosAction);
+          this.state.allMicroIds.forEach((microId) => {
+            socket.join(microId);
           });
+          socket.to('webClients').emit('remoteLightsStateAction', addMicrosAction);
         });
         socket.on('initWebClient', () => {
           socket.join('webClients');
           this.webClients.set(socket.id, socket);
-          socket.emit('setMicros', this.state);
-        })
+          const {state} = this;
+          socket.to(socket.id).emit('remoteLightsStateAction', resetState({state}));
+        });
         socket.on('getMicroBrightness', ({microId}) => {
           socket.to(microId).emit(`getBrightness.${microId}`, socket.id);
         });
