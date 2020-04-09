@@ -2,10 +2,10 @@ require('dotenv').config();
 import io from 'socket.io-client';
 import SerialPort from 'serialport';
 import {MicroController} from '../MicroController/MicroController';
-import remoteLights, { RemoteLightsState, initialState, addMicros, AddMicrosStateAction, StateActions, StateMicroAction, StateMicroActions } from '../Shared/reducers/remoteLights';
+import remoteLights, { RemoteLightsState, initialState, addMicros, AddMicrosStateAction, StateActions, StateMicroAction, } from '../Shared/reducers/remoteLights';
 interface Env {
-  PI_NAME: string,
-  MICRO_NAMES: string,
+  PI_NAME: string;
+  MICRO_NAMES: string;
 }
 const {
   PI_NAME,
@@ -20,7 +20,7 @@ export class SocketClient {
   state: RemoteLightsState;
   microMap: Map<MicroController["id"], MicroController>;
   serverSocket: SocketIOClient.Socket;
-  constructor(serverIp: any, serverPort: any) {
+  constructor(serverIp: string, serverPort: string) {
     this.piId = PI_NAME;
     this.initialized = false;
     this.microMap = new Map();
@@ -31,7 +31,7 @@ export class SocketClient {
     // serverSocket.on('reconnect', () => {
     //   serverSocket.emit('initLightClient', Array.from(this.microMap.values()));
     // });
-  };
+  }
   handleStateAction = (stateAction: StateActions) => {
     this.state = remoteLights(this.state, stateAction);
     switch (stateAction.type) {
@@ -66,7 +66,7 @@ export class SocketClient {
    * on productId returned.
    * @returns {Promise<SerialPort.PortInfo[]>}
    */
-  scanSerial():Promise<SerialPort.PortInfo[]> {
+  scanSerial(): Promise<SerialPort.PortInfo[]> {
     return new Promise((resolve, reject) => {
       SerialPort.list().then((serialPortList) => {
         const connectedTeensies = serialPortList.filter((portInfo) => {
