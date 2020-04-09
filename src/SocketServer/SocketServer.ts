@@ -1,6 +1,6 @@
 import io from 'socket.io';
 import { WebMicroInfo } from '../Shared/MicroTypes';
-import remoteLights, {RemoteLightsState, resetState, AddMicrosStateAction, addMicros, StateActions} from '../Shared/reducers/remoteLights';
+import remoteLights, {RemoteLightsState, resetState, AddMicrosStateAction, StateActions} from '../Shared/reducers/remoteLights';
 const initialState = {
   allMicroIds: [],
   byMicroId: {}
@@ -12,7 +12,7 @@ class PiServer {
   server: SocketIO.Server;
   micros: WebMicroInfo[];
   state: RemoteLightsState;
-  webClients: Map<any, any>;
+  webClients: Map<string, io.Socket>;
   constructor(port: string) {
     this.server = io(port);
     this.micros = [];
