@@ -2,7 +2,7 @@ require('dotenv').config();
 import io from 'socket.io-client';
 import SerialPort from 'serialport';
 import {MicroController} from '../MicroController/MicroController';
-import remoteLights, { RemoteLightsState, initialState, addMicros, AddMicrosStateAction } from '../Shared/reducers/remoteLights';
+import remoteLights, { RemoteLightsState, initialState, addMicros, AddMicrosStateAction, StateActions, StateMicroAction, StateMicroActions } from '../Shared/reducers/remoteLights';
 interface Env {
   PI_NAME: string,
   MICRO_NAMES: string,
@@ -11,7 +11,9 @@ const {
   PI_NAME,
   MICRO_NAMES
 } = process.env as unknown as Env;
-
+const {
+  MERGE, SPLIT, RESET_MICRO, SET_EFFECT, SET_BRIGHTNESS, RESIZE_FROM_BOUNDARIES,
+} = StateMicroAction;
 export class SocketClient {
   piId: string;
   initialized: boolean;
@@ -25,10 +27,40 @@ export class SocketClient {
     this.state = initialState;
     this.serverSocket = io.connect(`http://${serverIp}:${serverPort}/server`);
     const {serverSocket} = this;
+    serverSocket.on('reInitAppState', this.reInitAppState);
     // serverSocket.on('reconnect', () => {
     //   serverSocket.emit('initLightClient', Array.from(this.microMap.values()));
     // });
   };
+  handleStateAction = (stateAction: StateActions) => {
+    this.state = remoteLights(this.state, stateAction);
+    switch (stateAction.type) {
+      case SPLIT:
+        this.microMap.get(stateAction.payload.microId)?.
+        splitSegment(stateAction.payload.payload); break;
+      case MERGE:
+        this.microMap.get(stateAction.payload.microId)?.
+        mergeSegments(stateAction.payload.payload); break;
+      case SET_EFFECT:
+        this.microMap.get(stateAction.payload.microId)?.
+        setSegmentEffect(stateAction.payload.payload); break;
+      case SET_BRIGHTNESS:
+        this.microMap.get(stateAction.payload.microId)?.
+        setBrightness(stateAction.payload.payload); break;
+      case RESIZE_FROM_BOUNDARIES:
+        this.microMap.get(stateAction.payload.microId)?.
+        resizeSegmentsFromBoundaries(stateAction.payload.payload); break;
+      case RESET_MICRO:
+        this.microMap.get(stateAction.payload.microId)?.
+        resetMicro(stateAction.payload.payload); break;
+    }
+  }
+  reInitAppState = () => {
+    const {allMicroIds, byMicroId} = this.state;
+    const micros = allMicroIds.map(microId => byMicroId[microId]);
+    const addMicrosAction = addMicros({micros});
+    this.initSocket(addMicrosAction);
+  }
   /**
    * Scans SerialPorts and returns the Teensies based
    * on productId returned.
@@ -56,9 +88,6 @@ export class SocketClient {
       });
     });
   }
-  emitMicros = (microIds: any) => {
-    this.serverSocket.emit('addMicros', microIds);
-  }
   initSocket = (addMicosAction: AddMicrosStateAction) => {
     this.serverSocket.emit('initLightClient', addMicosAction);
   }
@@ -71,7 +100,7 @@ export class SocketClient {
       .map(micro => micro.getInfo());
       const addMicrosAction = addMicros({micros});
       this.initSocket(addMicrosAction);
-      this.state = remoteLights(this.state, addMicrosAction);
+      this.handleStateAction(addMicrosAction);
       this.initialized = true;
     });
   }
