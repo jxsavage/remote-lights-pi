@@ -1,16 +1,13 @@
 import io from 'socket.io';
-import { WebMicroInfo } from '../Shared/MicroTypes';
+import { MicroState } from '../Shared/MicroTypes';
 import remoteLights, {RemoteLightsState, resetState, AddMicrosStateAction, StateActions} from '../Shared/reducers/remoteLights';
 const initialState = {
   allMicroIds: [],
   byMicroId: {}
 };
-/**
- * @property {string[]} micros
- */
 class PiServer {
   server: SocketIO.Server;
-  micros: WebMicroInfo[];
+  micros: MicroState[];
   state: RemoteLightsState;
   webClients: Map<string, io.Socket>;
   constructor(port: string) {
@@ -52,15 +49,6 @@ class PiServer {
   }
   handleStateAction = (stateAction: StateActions) => {
     this.state = remoteLights(this.state, stateAction);
-  }
-  filterNewMicros = (newMicroInfoArr: WebMicroInfo[]) => {
-    const {micros} = this;
-    return newMicroInfoArr.filter((newMicroInfo) =>{
-      const hasMicro = micros.findIndex((currentMicroInfo) =>{
-        return currentMicroInfo.id == newMicroInfo.id;
-      });
-      return hasMicro == -1;
-    });
   }
 }
 export default PiServer;

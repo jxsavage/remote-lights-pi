@@ -1,11 +1,7 @@
 import SerialPort from 'serialport';
-import {
-  MicroBrightnessResponse,
-  MicroInfoResponse, BaseMicroResponse
-} from 'Shared/MicroTypes';
-import {MicroMethod, MicroCommand, SegmentCommand} from '../Shared/MicroCommands';
-import {Convert, SharedMicroState} from '../Shared/MicroShared';
+import { MicroMethod, MicroCommand, SegmentCommand } from '../Shared/MicroCommands';
 import { SplitSegmentPayload, MergeSegmentsPayload, SetBrightnessPayload, SetSegmentEffectPayload, ResizeSegmentsFromBoundariesPayload, ResetMicroPayload } from 'Shared/reducers/microController';
+import { LEDSegment, MicroState } from 'Shared/MicroTypes';
 const parser = new SerialPort.parsers
   .Readline({delimiter:'\n', encoding: 'utf8'});
 const openOptions = {
@@ -14,12 +10,46 @@ const openOptions = {
   parser: parser,
   lock: false,
 }
+// TODO: Factor this stuff out later...
+export interface MicroStateResponse {
+  prop: MicroCommand;
+  totalLEDs: number;
+  brightness: number;
+  segments: LEDSegment[];
+}
+function  calculateSegmentBoundaries(segments: LEDSegment[]) {
+  const boundaries: number[] = segments
+    .reduce((boundaries, segment, index) => {
+      const notEnd = !(index === (segments.length - 1));
+      if (index === 0) {
+        boundaries.push(segment.numLEDs);
+      } else if (notEnd) {
+        boundaries
+          .push(segment.offset + segment.numLEDs);
+      }
+      return boundaries;
+    }, [] as number[]);
+  return boundaries;
+}
+function convertState(
+  microId: string,
+  { totalLEDs, segments, brightness }: MicroStateResponse,
+): MicroState {
+  const segmentBoundaries = calculateSegmentBoundaries(segments);
+  const webInfo: MicroState = {
+    microId,
+    totalLEDs,
+    brightness,
+    segmentBoundaries,
+    segments,
+  };
+  return webInfo;
+}
 export class MicroController {
   id: string;
+  state!: MicroState;
   serial: SerialPort;
   initialized: boolean;
-  socket: SocketIOClient.Socket;
-  state: SharedMicroState | null;
   static cmdGetBrightness = `${JSON.stringify({cmd: MicroCommand.Brightness, method: MicroMethod.Get,})}\n`;
   static cmdGetInfo = `${JSON.stringify({cmd: MicroCommand.Info, method: MicroMethod.Get})}\n`;
   
@@ -28,10 +58,7 @@ export class MicroController {
     piId: string, serverSocket: SocketIOClient.Socket,
     microName: string
   ){
-    
-    this.state = null;
     this.initialized = false;
-    this.socket = serverSocket;
     this.id = `${piId}.${microName}`;
     
     const {path} = portInfo;
@@ -46,16 +73,16 @@ export class MicroController {
     
   }
   splitSegment = ({direction, newEffect, segmentIndex}: SplitSegmentPayload) => {
-    
+    //TODO
   }
   mergeSegments = ({direction, segmentIndex}: MergeSegmentsPayload) => {
-    
+    //TODO
   }
   resizeSegmentsFromBoundaries = ({segmentBoundaries}: ResizeSegmentsFromBoundariesPayload) => {
-
+    //TODO
   }
   resetMicro = ({micro}: ResetMicroPayload) => {
-
+    //TODO
   }
   setBrightness = ({brightness}: SetBrightnessPayload) => {
     const setBrightness = JSON.stringify({
@@ -72,43 +99,28 @@ export class MicroController {
       method: MicroMethod.Set,
       prop: SegmentCommand.Effect,
       segmentIndex,
-      value: Convert.webEffectToMicro(effect),
+      value: effect,
     });
     this.serial.write(`${setEffect}\n`);
     this.serial.drain();
   }
-  getInfo = () => {
+  getInfo = (): MicroState => {
     const {state} = this;
     if (state) {
-      return state.getState();
+      return state;
     } else {
       throw new Error
       ('MicroController.getBrightness() called before initialization...');
     }
   }
-  dataHandler = (data: string) => {
-
-    const handleBrightness = ({value, client}: MicroBrightnessResponse) => {
-      const {state, socket, id} = this;
-      if (state) {
-        state.setBrightness(value);
-        socket.emit('setWebBrightness',
-          {socketId: client, brightness: value, microId: id});
-      } else {
-        console.log('state not set when handleBrightness is called...')
-      }
+  dataHandler = (data: string): void => {
+    const handleInfo = (infoResponse: MicroStateResponse) => {
+      const microState = convertState(this.id, infoResponse);
+      this.state = microState;
     }
-    const handleInfo = (infoResponse: MicroInfoResponse) => {
-      const webMicroInfo = Convert.microInfoToWeb(this.id, infoResponse);
-      this.state = new SharedMicroState(webMicroInfo);
-    }
-    const handleResponse = (response: BaseMicroResponse) => {
-      if(response.prop === MicroCommand.Brightness) {
-        handleBrightness(response as MicroBrightnessResponse);
-      // } else if (response.prop === COMMAND.EFFECT) {
-      //   handleEffect(response);
-      } else if (response.prop === MicroCommand.Info) {
-        handleInfo(response as MicroInfoResponse);
+    const handleResponse = (response: MicroStateResponse) => {
+      if (response.prop === MicroCommand.Info) {
+        handleInfo(response as MicroStateResponse);
       } else {
         console.log(`ERROR: Unkown response type:\n${JSON.stringify(response, null,'  ')}\n`);
       }
@@ -120,7 +132,7 @@ export class MicroController {
       console.log(`ERROR:\n${err}\nResponse:\n${data.toString()}\n`);
     }
   }
-  initialize = ():Promise<MicroController> => {
+  initialize = (): Promise<MicroController> => {
     return new Promise((resolve, reject) => {
       const initMsg = setInterval(() => console.log('Waiting for initialization...'), 3000);
       const initializing = setInterval((resolve) => {
@@ -138,4 +150,5 @@ export class MicroController {
     });
   }
 }
+
 export default MicroController;
