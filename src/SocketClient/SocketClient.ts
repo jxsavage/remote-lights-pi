@@ -26,8 +26,8 @@ export class SocketClient {
     this.microMap = new Map();
     this.state = initialState;
     this.serverSocket = io.connect(`http://${serverIp}:${serverPort}/server`);
-    const {serverSocket} = this;
-    serverSocket.on('reInitAppState', this.reInitAppState);
+    this.serverSocket.on('reInitAppState', this.reInitAppState);
+    this.serverSocket.on('remoteLightsStateAction', this.handleStateAction);
     // serverSocket.on('reconnect', () => {
     //   serverSocket.emit('initLightClient', Array.from(this.microMap.values()));
     // });
