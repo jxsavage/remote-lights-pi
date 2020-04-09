@@ -32,7 +32,7 @@ export class SocketClient {
     //   serverSocket.emit('initLightClient', Array.from(this.microMap.values()));
     // });
   }
-  handleStateAction = (stateAction: StateActions) => {
+  handleStateAction = (stateAction: StateActions): void => {
     this.state = remoteLights(this.state, stateAction);
     switch (stateAction.type) {
       case SPLIT:
@@ -55,7 +55,7 @@ export class SocketClient {
         resetMicro(stateAction.payload.payload); break;
     }
   }
-  reInitAppState = () => {
+  reInitAppState = (): void => {
     const {allMicroIds, byMicroId} = this.state;
     const micros = allMicroIds.map(microId => byMicroId[microId]);
     const addMicrosAction = addMicros({micros});
@@ -88,10 +88,10 @@ export class SocketClient {
       });
     });
   }
-  initSocket = (addMicosAction: AddMicrosStateAction) => {
+  initSocket = (addMicosAction: AddMicrosStateAction): void => {
     this.serverSocket.emit('initLightClient', addMicosAction);
   }
-  initialize = () => {
+  initialize = (): void => {
     this.initializeMicro().then((microArr)=>{
       microArr.forEach((micro) => {
         this.microMap.set(micro.id, micro);

@@ -17,7 +17,7 @@ class PiServer {
     this.webClients = new Map();
     this.initializeServer();
   }
-  initializeServer() {
+  initializeServer(): void {
     this.server
       .of('/server')
       .on('connection', (socket: SocketIO.Socket) => {
@@ -47,7 +47,7 @@ class PiServer {
         });
       });
   }
-  handleStateAction = (stateAction: StateActions) => {
+  handleStateAction = (stateAction: StateActions): void => {
     this.state = remoteLights(this.state, stateAction);
   }
 }
