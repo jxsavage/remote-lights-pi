@@ -81,7 +81,7 @@ export class SocketClient {
       this.scanSerial().then((portInfoArr) => {
         const names = MICRO_NAMES.split(',');
         const uninitialized = portInfoArr.map((portInfo, i)=>{
-          return new MicroController(portInfo, this.piId, this.serverSocket, names[i]);
+          return new MicroController(portInfo, this.piId, names[i]);
         });
         Promise.all(uninitialized.map(teensy => teensy.initialize()))
         .then((teensyArr)=>resolve(teensyArr));

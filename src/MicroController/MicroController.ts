@@ -1,62 +1,50 @@
 import SerialPort from 'serialport';
-import { MicroMethod, MicroCommand, SegmentCommand } from '../Shared/MicroCommands';
-import { SplitSegmentPayload, MergeSegmentsPayload, SetBrightnessPayload, SetSegmentEffectPayload, ResizeSegmentsFromBoundariesPayload, ResetMicroPayload } from 'Shared/reducers/microController';
-import { LEDSegment, MicroState } from 'Shared/MicroTypes';
+import { MicroCommand, MICRO_COMMAND, MicroEffect } from '../Shared/MicroCommands';
+import {
+  SplitSegmentPayload, MergeSegmentsPayload, SetBrightnessPayload,
+  SetSegmentEffectPayload, ResizeSegmentsFromBoundariesPayload,
+  ResetMicroPayload, createSegment, calculateSegmentBoundaries
+} from '../Shared/reducers/microController';
+import { MicroState, NumLEDs, Offset, TotalLEDs, Brightness } from '../Shared/MicroTypes';
 const parser = new SerialPort.parsers
-  .Readline({delimiter:'\n', encoding: 'utf8'});
+  .Readline({delimiter:'\n', encoding: 'utf8', includeDelimiter: false});
 const openOptions = {
   autoOpen: true,
   baudRate: 115200,
   parser: parser,
   lock: false,
 }
-// TODO: Factor this stuff out later...
-export interface MicroStateResponse {
-  prop: MicroCommand;
-  totalLEDs: number;
-  brightness: number;
-  segments: LEDSegment[];
-}
-function  calculateSegmentBoundaries(segments: LEDSegment[]) {
-  const boundaries: number[] = segments
-    .reduce((boundaries, segment, index) => {
-      const notEnd = !(index === (segments.length - 1));
-      if (index === 0) {
-        boundaries.push(segment.numLEDs);
-      } else if (notEnd) {
-        boundaries
-          .push(segment.offset + segment.numLEDs);
-      }
-      return boundaries;
-    }, [] as number[]);
-  return boundaries;
-}
+export type SegmentResponse = [Offset, NumLEDs, MicroEffect];
+type MicroStateResponse = [MicroCommand, TotalLEDs, Brightness, SegmentResponse[]];
 function convertState(
   microId: string,
-  { totalLEDs, segments, brightness }: MicroStateResponse,
+  [, totalLEDs, brightness, segmentsResponse]: MicroStateResponse,
 ): MicroState {
+  const segments = segmentsResponse.map(segmentResponse => createSegment(...segmentResponse));
   const segmentBoundaries = calculateSegmentBoundaries(segments);
-  const webInfo: MicroState = {
+  return {
     microId,
+    segments,
     totalLEDs,
     brightness,
     segmentBoundaries,
-    segments,
   };
-  return webInfo;
 }
+const {
+  GET_STATE, RESET_MICRO, RESIZE_SEGMENTS_FROM_BOUNDARIES,
+  SET_SEGMENT_EFFECT, SPLIT_SEGMENT, MERGE_SEGMENTS, SET_BRIGHTNESS
+} = MICRO_COMMAND;
+
 export class MicroController {
   id: string;
   state!: MicroState;
   serial: SerialPort;
   initialized: boolean;
-  static cmdGetBrightness = `${JSON.stringify({cmd: MicroCommand.Brightness, method: MicroMethod.Get,})}\n`;
-  static cmdGetInfo = `${JSON.stringify({cmd: MicroCommand.Info, method: MicroMethod.Get})}\n`;
+  static cmdGetInfo = `${JSON.stringify([MICRO_COMMAND.GET_STATE])}\n`;
   
   constructor(
     portInfo: SerialPort.PortInfo,
-    piId: string, serverSocket: SocketIOClient.Socket,
-    microName: string
+    piId: string, microName: string
   ){
     this.initialized = false;
     this.id = `${piId}.${microName}`;
@@ -73,35 +61,28 @@ export class MicroController {
     
   }
   splitSegment = ({direction, newEffect, segmentIndex}: SplitSegmentPayload) => {
+    const command = [SPLIT_SEGMENT, segmentIndex, direction, newEffect];
     //TODO
   }
   mergeSegments = ({direction, segmentIndex}: MergeSegmentsPayload) => {
+    const command = [MERGE_SEGMENTS, segmentIndex, direction];
     //TODO
   }
   resizeSegmentsFromBoundaries = ({segmentBoundaries}: ResizeSegmentsFromBoundariesPayload) => {
+    const command = [RESIZE_SEGMENTS_FROM_BOUNDARIES, ...segmentBoundaries];
     //TODO
   }
   resetMicro = ({micro}: ResetMicroPayload) => {
     //TODO
   }
   setBrightness = ({brightness}: SetBrightnessPayload) => {
-    const setBrightness = JSON.stringify({
-      cmd: MicroCommand.Brightness,
-      method: MicroMethod.Set,
-      value: Number(brightness),
-    });
-    this.serial.write(`${setBrightness}\n`);
+    const command = JSON.stringify([SET_BRIGHTNESS, brightness]);
+    this.serial.write(`${command}\n`);
     this.serial.drain();
   }
   setSegmentEffect = ({effect, segmentIndex}: SetSegmentEffectPayload) => {
-    const setEffect = JSON.stringify({
-      cmd: MicroCommand.Segment,
-      method: MicroMethod.Set,
-      prop: SegmentCommand.Effect,
-      segmentIndex,
-      value: effect,
-    });
-    this.serial.write(`${setEffect}\n`);
+    const command = JSON.stringify([SET_SEGMENT_EFFECT, effect, segmentIndex]);
+    this.serial.write(`${command}\n`);
     this.serial.drain();
   }
   getInfo = (): MicroState => {
@@ -114,12 +95,13 @@ export class MicroController {
     }
   }
   dataHandler = (data: string): void => {
-    const handleInfo = (infoResponse: MicroStateResponse) => {
-      const microState = convertState(this.id, infoResponse);
+    const handleInfo = (microStateResponse: MicroStateResponse) => {
+      const microState = convertState(this.id, microStateResponse);
       this.state = microState;
     }
-    const handleResponse = (response: MicroStateResponse) => {
-      if (response.prop === MicroCommand.Info) {
+    type MicroResponse = number[];
+    const handleResponse = (response: MicroResponse) => {
+      if (response[0] === GET_STATE) {
         handleInfo(response as MicroStateResponse);
       } else {
         console.log(`ERROR: Unkown response type:\n${JSON.stringify(response, null,'  ')}\n`);
