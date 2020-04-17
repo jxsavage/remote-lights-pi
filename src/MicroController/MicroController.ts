@@ -61,7 +61,7 @@ export class MicroController {
     this.serial.drain();
   }
   mergeSegments = ({direction, segmentIndex}: MergeSegmentsPayload) => {
-    const command = JSON.stringify([MERGE_SEGMENTS, segmentIndex, direction]);
+    const command = JSON.stringify([MERGE_SEGMENTS, direction, segmentIndex]);
     this.serial.write(`${command}\n`);
     this.serial.drain();
   }
