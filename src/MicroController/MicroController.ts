@@ -5,7 +5,7 @@ import {
   SetSegmentEffectPayload, ResizeSegmentsFromBoundariesPayload,
   ResetMicroPayload, createSegment, calculateSegmentBoundaries
 } from '../Shared/reducers/microController';
-import { MicroState, NumLEDs, Offset, TotalLEDs, Brightness } from '../Shared/MicroTypes';
+import { MicroState, NumLEDs, Offset, TotalLEDs, Brightness, MicroId, SegmentId } from '../Shared/MicroTypes';
 const parser = new SerialPort.parsers
   .Readline({delimiter:'\n', encoding: 'utf8', includeDelimiter: false});
 const openOptions = {
@@ -14,11 +14,10 @@ const openOptions = {
   parser: parser,
   lock: false,
 }
-export type SegmentResponse = [Offset, NumLEDs, MicroEffect];
-type MicroStateResponse = [MicroCommand, TotalLEDs, Brightness, SegmentResponse[]];
+export type SegmentResponse = [Offset, NumLEDs, MicroEffect, SegmentId];
+type MicroStateResponse = [MicroCommand, MicroId, TotalLEDs, Brightness, SegmentResponse[]];
 function convertState(
-  microId: string,
-  [, totalLEDs, brightness, segmentsResponse]: MicroStateResponse,
+  [, microId, totalLEDs, brightness, segmentsResponse]: MicroStateResponse,
 ): MicroState {
   const segments = segmentsResponse.map(segmentResponse => createSegment(...segmentResponse));
   const segmentBoundaries = calculateSegmentBoundaries(segments);
@@ -36,19 +35,15 @@ const {
 } = MICRO_COMMAND;
 
 export class MicroController {
-  id: string;
   state!: MicroState;
   serial: SerialPort;
   initialized: boolean;
   static cmdGetInfo = `${JSON.stringify([MICRO_COMMAND.GET_STATE])}\n`;
   
   constructor(
-    portInfo: SerialPort.PortInfo,
-    piId: string, microName: string
+    portInfo: SerialPort.PortInfo
   ){
     this.initialized = false;
-    this.id = `${piId}.${microName}`;
-    
     const {path} = portInfo;
     this.serial = new SerialPort (
       path,
@@ -96,7 +91,7 @@ export class MicroController {
   }
   dataHandler = (data: string): void => {
     const handleInfo = (microStateResponse: MicroStateResponse) => {
-      const microState = convertState(this.id, microStateResponse);
+      const microState = convertState(microStateResponse);
       this.state = microState;
     }
     type MicroResponse = number[];
@@ -119,7 +114,7 @@ export class MicroController {
       const initMsg = setInterval(() => console.log('Waiting for initialization...'), 3000);
       const initializing = setInterval((resolve) => {
         if(this.state) {
-          console.log(`MicroController ${this.id} Initialized.`);
+          console.log(`MicroController ${this.state.microId} Initialized.`);
           this.initialized = true;
           resolve(this);
           clearInterval(initializing);

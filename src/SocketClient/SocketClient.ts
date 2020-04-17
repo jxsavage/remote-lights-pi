@@ -3,6 +3,7 @@ import io from 'socket.io-client';
 import SerialPort from 'serialport';
 import {MicroController} from '../MicroController/MicroController';
 import remoteLights, { RemoteLightsState, initialState, addMicros, AddMicrosStateAction, StateActions, StateMicroAction, } from '../Shared/reducers/remoteLights';
+import { MicroId } from 'Shared/MicroTypes';
 interface Env {
   PI_NAME: string;
   MICRO_NAMES: string;
@@ -18,7 +19,7 @@ export class SocketClient {
   piId: string;
   initialized: boolean;
   state: RemoteLightsState;
-  microMap: Map<MicroController["id"], MicroController>;
+  microMap: Map<MicroId, MicroController>;
   serverSocket: SocketIOClient.Socket;
   constructor(serverIp: string, serverPort: string) {
     this.piId = PI_NAME;
@@ -81,7 +82,7 @@ export class SocketClient {
       this.scanSerial().then((portInfoArr) => {
         const names = MICRO_NAMES.split(',');
         const uninitialized = portInfoArr.map((portInfo, i)=>{
-          return new MicroController(portInfo, this.piId, names[i]);
+          return new MicroController(portInfo);
         });
         Promise.all(uninitialized.map(teensy => teensy.initialize()))
         .then((teensyArr)=>resolve(teensyArr));
@@ -94,7 +95,7 @@ export class SocketClient {
   initialize = (): void => {
     this.initializeMicro().then((microArr)=>{
       microArr.forEach((micro) => {
-        this.microMap.set(micro.id, micro);
+        this.microMap.set(micro.state.microId, micro);
       });
       const micros = Array.from(this.microMap.values())
       .map(micro => micro.getInfo());

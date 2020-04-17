@@ -26,7 +26,7 @@ class PiServer {
           socket.join('lightClients');
           this.handleStateAction(addMicrosAction);
           this.state.allMicroIds.forEach((microId) => {
-            socket.join(microId);
+            socket.join(String(microId));
           });
           socket.to('webClients').emit('remoteLightsStateAction', addMicrosAction);
         });
