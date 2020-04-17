@@ -55,17 +55,20 @@ export class MicroController {
     serial.on('data', dataHandler);
     
   }
-  splitSegment = ({direction, newEffect, segmentIndex}: SplitSegmentPayload) => {
-    const command = [SPLIT_SEGMENT, segmentIndex, direction, newEffect];
-    //TODO
+  splitSegment = ({newEffect, direction, segmentIndex}: SplitSegmentPayload) => {
+    const command = JSON.stringify([SPLIT_SEGMENT, newEffect,  direction, segmentIndex]);
+    this.serial.write(`${command}\n`);
+    this.serial.drain();
   }
   mergeSegments = ({direction, segmentIndex}: MergeSegmentsPayload) => {
-    const command = [MERGE_SEGMENTS, segmentIndex, direction];
-    //TODO
+    const command = JSON.stringify([MERGE_SEGMENTS, segmentIndex, direction]);
+    this.serial.write(`${command}\n`);
+    this.serial.drain();
   }
   resizeSegmentsFromBoundaries = ({segmentBoundaries}: ResizeSegmentsFromBoundariesPayload) => {
-    const command = [RESIZE_SEGMENTS_FROM_BOUNDARIES, ...segmentBoundaries];
-    //TODO
+    const command = JSON.stringify([RESIZE_SEGMENTS_FROM_BOUNDARIES, segmentBoundaries]);
+    this.serial.write(`${command}\n`);
+    this.serial.drain();
   }
   resetMicro = ({micro}: ResetMicroPayload) => {
     //TODO
