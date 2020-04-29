@@ -1,5 +1,5 @@
 import SerialPort from 'serialport';
-import MicroController from '../MicroController/MicroController';
+import MicroController from '../MicroController';
 import {
   MicroState, removeMicros, convertToEmittableAction, AllActions,
 } from '../Shared/store';
@@ -48,7 +48,7 @@ export function scanNewMicros(dispatch: Dispatch<AllActions>): () => void {
   return function scan(): void {
     scanSerial().then((portInfoArr) => {
       const uninitialized = portInfoArr.filter((portInfo)=>{
-        return portPathSerialMap.has(portInfo.path);
+        return !portPathSerialMap.has(portInfo.path);
       });
       const newSerialConnections = uninitialized.map((portInfo) => {
         return new MicroController(initSerialPort(portInfo), dispatch);
