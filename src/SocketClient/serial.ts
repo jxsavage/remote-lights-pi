@@ -1,5 +1,5 @@
 import SerialPort from 'serialport';
-import MicroController from 'MicroController/MicroController';
+import MicroController from '../MicroController/MicroController';
 import {
   MicroState, removeMicros, convertToEmittableAction, AllActions,
 } from '../Shared/store';
