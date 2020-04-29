@@ -1,104 +1,88 @@
 import SerialPort from 'serialport';
-import { MicroCommand, MICRO_COMMAND, MicroEffect } from '../Shared/MicroCommands';
-import {
-  SplitSegmentPayload, MergeSegmentsPayload, SetBrightnessPayload,
-  SetSegmentEffectPayload, ResizeSegmentsFromBoundariesPayload,
-  ResetMicroPayload, createSegment, calculateSegmentBoundaries
-} from '../Shared/reducers/microController';
-import { MicroState, NumLEDs, Offset, TotalLEDs, Brightness, MicroId, SegmentId } from '../Shared/MicroTypes';
-const parser = new SerialPort.parsers
-  .Readline({delimiter:'\n', encoding: 'utf8', includeDelimiter: false});
-const openOptions = {
-  autoOpen: true,
-  baudRate: 115200,
-  parser: parser,
-  lock: false,
-}
-export type SegmentResponse = [Offset, NumLEDs, MicroEffect, SegmentId];
-type MicroStateResponse = [MicroCommand, MicroId, TotalLEDs, Brightness, SegmentResponse[]];
-function convertState(
-  [, microId, totalLEDs, brightness, segmentsResponse]: MicroStateResponse,
-): MicroState {
-  const segments = segmentsResponse.map(segmentResponse => createSegment(...segmentResponse));
-  const segmentBoundaries = calculateSegmentBoundaries(segments);
-  return {
-    microId,
-    segments,
-    totalLEDs,
-    brightness,
-    segmentBoundaries,
-  };
-}
+import { MICRO_COMMAND } from '../Shared/MicroCommands';
+import { 
+  AllActions, MicroActionsInterface, MicroState,
+  addMicroFromControllerResponse, convertToEmittableAction,
+} from '../Shared/store'
+import { Dispatch } from 'redux';
+import { MicroStateResponse } from 'Shared/store/types';
+
 const {
   GET_STATE, RESET_MICRO, RESIZE_SEGMENTS_FROM_BOUNDARIES,
   SET_SEGMENT_EFFECT, SPLIT_SEGMENT, MERGE_SEGMENTS, SET_BRIGHTNESS
 } = MICRO_COMMAND;
 
-export class MicroController {
-  state!: MicroState;
+export class MicroController implements MicroActionsInterface {
+  microId!: MicroState['microId'];
   serial: SerialPort;
+  dispatch: Dispatch<AllActions>;
   initialized: boolean;
   static cmdGetInfo = `${JSON.stringify([MICRO_COMMAND.GET_STATE])}\n`;
   
   constructor(
-    portInfo: SerialPort.PortInfo
+    serialPort: SerialPort,
+    dispatch: Dispatch<AllActions>,
   ){
     this.initialized = false;
-    const {path} = portInfo;
-    this.serial = new SerialPort (
-      path,
-      openOptions
-    );
-    console.log('Connecting to teensy on port', path);
+    this.serial = serialPort;
+    this.dispatch = dispatch;
+
     
     const { serial, dataHandler } = this;
     serial.on('data', dataHandler);
     
   }
-  splitSegment = ({newEffect, direction, segmentIndex}: SplitSegmentPayload) => {
+  splitSegment:
+  MicroActionsInterface['splitSegment'] = (
+    { newEffect, direction, segmentIndex }
+  ) => {
     const command = JSON.stringify([SPLIT_SEGMENT, newEffect,  direction, segmentIndex]);
     this.serial.write(`${command}\n`);
     this.serial.drain();
   }
-  mergeSegments = ({direction, segmentIndex}: MergeSegmentsPayload) => {
+  mergeSegments:
+  MicroActionsInterface['mergeSegments'] = (
+    { direction, segmentIndex }
+  ) => {
     const command = JSON.stringify([MERGE_SEGMENTS, segmentIndex, direction]);
     this.serial.write(`${command}\n`);
     this.serial.drain();
   }
-  resizeSegmentsFromBoundaries = ({segmentBoundaries}: ResizeSegmentsFromBoundariesPayload) => {
+  resizeSegmentsFromBoundaries:
+  MicroActionsInterface['resizeSegmentsFromBoundaries'] = (
+    { segmentBoundaries }
+  ) => {
     const command = JSON.stringify([RESIZE_SEGMENTS_FROM_BOUNDARIES, segmentBoundaries]);
     this.serial.write(`${command}\n`);
     this.serial.drain();
   }
-  resetMicro = ({micro}: ResetMicroPayload) => {
-    //TODO
-  }
-  setBrightness = ({brightness}: SetBrightnessPayload) => {
+  setMicroBrightness:
+  MicroActionsInterface['setMicroBrightness'] = (
+    { brightness }
+  ) => {
     const command = JSON.stringify([SET_BRIGHTNESS, brightness]);
     this.serial.write(`${command}\n`);
     this.serial.drain();
   }
-  setSegmentEffect = ({effect, segmentIndex}: SetSegmentEffectPayload) => {
+  setSegmentEffect:
+  MicroActionsInterface['setSegmentEffect'] = (
+    { effect, segmentIndex }
+  ) => {
     const command = JSON.stringify([SET_SEGMENT_EFFECT, effect, segmentIndex]);
     this.serial.write(`${command}\n`);
     this.serial.drain();
   }
-  getInfo = (): MicroState => {
-    const {state} = this;
-    if (state) {
-      return state;
-    } else {
-      throw new Error
-      ('MicroController.getBrightness() called before initialization...');
-    }
-  }
   dataHandler = (data: string): void => {
-    const handleInfo = (microStateResponse: MicroStateResponse) => {
-      const microState = convertState(microStateResponse);
-      this.state = microState;
+    const handleInfo = (microStateResponse: MicroStateResponse): void => {
+      this.dispatch(
+      convertToEmittableAction(
+        addMicroFromControllerResponse(
+          {microResponse: microStateResponse}
+      )));
+      this.microId = microStateResponse[1];
     }
     type MicroResponse = number[];
-    const handleResponse = (response: MicroResponse) => {
+    const handleResponse = (response: MicroResponse): void => {
       if (response[0] === GET_STATE) {
         handleInfo(response as MicroStateResponse);
       } else {
@@ -113,11 +97,12 @@ export class MicroController {
     }
   }
   initialize = (): Promise<MicroController> => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     return new Promise((resolve, reject) => {
       const initMsg = setInterval(() => console.log('Waiting for initialization...'), 3000);
       const initializing = setInterval((resolve) => {
-        if(this.state) {
-          console.log(`MicroController ${this.state.microId} Initialized.`);
+        if(this.microId) {
+          console.log(`MicroController ${this.microId} Initialized.`);
           this.initialized = true;
           resolve(this);
           clearInterval(initializing);

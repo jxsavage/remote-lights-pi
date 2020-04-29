@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "dotenv": "^8.2.0",
+    "redux": "^4.0.5",
     "serialport": "^8.0.7",
     "socket.io": "^2.3.0"
   }
