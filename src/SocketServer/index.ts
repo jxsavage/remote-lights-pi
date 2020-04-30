@@ -22,8 +22,10 @@ class SocketServer {
   initializeServer(): void {
     this.server
       .of('/server')
-      .on('connection', (socket: SocketIO.Socket) => {
-        socket.on(RE_INIT_APP_STATE, () => socket.broadcast.emit(RE_INIT_APP_STATE));
+      .on('connection', (socket: SocketIO.Socket) => {   
+        socket.on(RE_INIT_APP_STATE, () =>{ 
+          socket.broadcast.emit(RE_INIT_APP_STATE);
+        });
         socket.on(INIT_LIGHT_CLIENT, () => {
           socket.join('lightClients');
         });
