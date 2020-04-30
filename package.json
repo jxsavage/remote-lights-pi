@@ -2,7 +2,8 @@
   "name": "remote-lights-pi",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/index.js",
+  "main": "src",
+  "types": "src",
   "scripts": {
     "start": "node --inspect=5858 -r ts-node/register src/index.ts",
     "dev": "./node_modules/nodemon/bin/nodemon.js",

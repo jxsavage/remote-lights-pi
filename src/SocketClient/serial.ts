@@ -1,4 +1,4 @@
-import SerialPort from 'serialport';
+import SerialPort, { parsers, list } from 'serialport';
 import MicroController from '../MicroController';
 import {
   MicroState, removeMicros, convertToEmittableAction, AllActions,
@@ -6,7 +6,7 @@ import {
 import { addMicroChannel } from './socket';
 import { Dispatch } from 'redux';
 
-const parser = new SerialPort.parsers
+const parser = new parsers
   .Readline({delimiter:'\n', encoding: 'utf8', includeDelimiter: false});
 const openOptions = {
   autoOpen: true,
@@ -19,7 +19,7 @@ const openOptions = {
 export function scanSerial(): Promise<SerialPort.PortInfo[]> {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   return new Promise((resolve, _reject) => {
-    SerialPort.list().then((serialPortList) => {
+    list().then((serialPortList) => {
       const connectedMicros = serialPortList.filter((portInfo) => {
         return portInfo.productId === '0483';
       });

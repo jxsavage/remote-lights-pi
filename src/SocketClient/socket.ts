@@ -1,25 +1,29 @@
 require('dotenv').config();
-import io from 'socket.io-client';
+import {connect} from 'socket.io-client';
 import { AnyAction } from 'redux';
 import {
   ClientEmitEvent, SharedEmitEvent,
 } from '../Shared/socket';
 import { MicroState } from 'Shared/store';
 interface ClientEnv {
-  SERVER_IP: string;
+  SERVER: string;
   SERVER_PORT: string;
   PI_NAME: string;
 }
 const {
-  SERVER_IP,
+  SERVER,
   SERVER_PORT,
   PI_NAME
 } = process.env as unknown as ClientEnv;
-export const socket = io.connect(`http://${SERVER_IP}:${SERVER_PORT}/server`);
+export let socket: SocketIOClient.Socket;
+export default function initSocket() {
+  socket = connect(`http://${SERVER}:${SERVER_PORT}/server`);
+  socket.on('connect', () => {
+    socket.emit(INIT_LIGHT_CLIENT);
+  });
+}
+
 const {INIT_LIGHT_CLIENT, ADD_MICRO_CHANNEL} = ClientEmitEvent;
-socket.on('connect', () => {
-  socket.emit(INIT_LIGHT_CLIENT, PI_NAME);
-});
 export function addMicroChannel(microId: MicroState['microId']): void {
   socket.emit(ADD_MICRO_CHANNEL, microId);
 }

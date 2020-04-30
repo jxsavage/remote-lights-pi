@@ -1,6 +1,6 @@
-import * as dotenv from 'dotenv';
+require('dotenv').config();
+import initClient from './SocketClient';
 import SocketServer from './SocketServer';
-dotenv.config();
 interface LaunchEnv {
   MODE: string;
   SERVER: string;
@@ -13,7 +13,8 @@ const {
 
 if(MODE=='client') {
   console.log('Launching Pi in client only mode...')
-  require('./SocketClient');
+  initClient();
+  //require('./SocketClient');
 }
 if(MODE=='server') {
   console.log('Launching Pi in server only mode...')
