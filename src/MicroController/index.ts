@@ -1,15 +1,14 @@
 import SerialPort from 'serialport';
-import { MICRO_COMMAND } from '../Shared/MicroCommands';
 import { 
   AllActions, MicroActionsInterface, MicroState,
-  addMicroFromControllerResponse, convertToEmittableAction,
+  addMicroFromControllerResponse, convertToEmittableAction, MICRO_COMMAND,
 } from '../Shared/store'
 import { Dispatch } from 'redux';
 import { MicroStateResponse } from 'Shared/store/types';
 
 const {
-  GET_STATE, RESET_MICRO, RESIZE_SEGMENTS_FROM_BOUNDARIES,
-  SET_SEGMENT_EFFECT, SPLIT_SEGMENT, MERGE_SEGMENTS, SET_BRIGHTNESS
+  GET_STATE, RESET_MICRO_STATE, RESIZE_SEGMENTS_FROM_BOUNDARIES,
+  SET_SEGMENT_EFFECT, SPLIT_SEGMENT, MERGE_SEGMENTS, SET_MICRO_BRIGHTNESS
 } = MICRO_COMMAND;
 
 export class MicroController implements MicroActionsInterface {
@@ -60,7 +59,7 @@ export class MicroController implements MicroActionsInterface {
   MicroActionsInterface['setMicroBrightness'] = (
     { brightness }
   ) => {
-    const command = JSON.stringify([SET_BRIGHTNESS, brightness]);
+    const command = JSON.stringify([SET_MICRO_BRIGHTNESS, brightness]);
     this.serial.write(`${command}\n`);
     this.serial.drain();
   }
