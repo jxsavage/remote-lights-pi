@@ -6,20 +6,20 @@ import {
 } from '../Shared/socket';
 import { MicroState } from 'Shared/store';
 interface ClientEnv {
-  SERVER: string;
+  SERVER_IP: string;
   SERVER_PORT: string;
-  PI_NAME: string;
+  CLIENT_ID: string;
 }
 const {
-  SERVER,
+  SERVER_IP,
   SERVER_PORT,
-  PI_NAME
+  CLIENT_ID
 } = process.env as unknown as ClientEnv;
 export let socket: SocketIOClient.Socket;
 export default function initSocket() {
-  socket = connect(`http://${SERVER}:${SERVER_PORT}/server`);
+  socket = connect(`http://${SERVER_IP}:${SERVER_PORT}/server`);
   socket.on('connect', () => {
-    socket.emit(INIT_LIGHT_CLIENT);
+    socket.emit(INIT_LIGHT_CLIENT, CLIENT_ID);
   });
 }
 
