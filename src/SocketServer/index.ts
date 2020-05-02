@@ -21,9 +21,11 @@ const dispatch = store.dispatch;
 class SocketServer {
   server: SocketIO.Server;
   webClients: Map<string, io.Socket>;
+  lightClients: Map<string, boolean>;
   constructor(port: string) {
     this.server = io(port);
     this.webClients = new Map();
+    this.lightClients = new Map();
     this.initializeServer();
   }
   initializeServer(): void {
@@ -33,8 +35,15 @@ class SocketServer {
         socket.on(RE_INIT_APP_STATE, () =>{ 
           socket.broadcast.emit(RE_INIT_APP_STATE);
         });
-        socket.on(INIT_LIGHT_CLIENT, () => {
+        socket.on(INIT_LIGHT_CLIENT, (clientId: string) => {
           socket.join('lightClients');
+          const hasClient = this.lightClients.has(clientId);
+          if(!hasClient) this.lightClients.set(clientId, false);
+          const isInitialized = this.lightClients.get(clientId);
+          if(!isInitialized) {
+            socket.emit(RE_INIT_APP_STATE);
+            this.lightClients.set(clientId, true);
+          }
         });
         socket.on(ADD_MICRO_CHANNEL, (microId: MicroState['microId']) => {
           socket.join(String(microId));

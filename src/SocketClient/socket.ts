@@ -16,14 +16,13 @@ const {
   CLIENT_ID
 } = process.env as unknown as ClientEnv;
 export let socket: SocketIOClient.Socket;
-export default function initSocket() {
+const {INIT_LIGHT_CLIENT, ADD_MICRO_CHANNEL} = ClientEmitEvent;
+export default function initSocket(): void {
   socket = connect(`http://${SERVER_IP}:${SERVER_PORT}/server`);
   socket.on('connect', () => {
     socket.emit(INIT_LIGHT_CLIENT, CLIENT_ID);
   });
 }
-
-const {INIT_LIGHT_CLIENT, ADD_MICRO_CHANNEL} = ClientEmitEvent;
 export function addMicroChannel(microId: MicroState['microId']): void {
   socket.emit(ADD_MICRO_CHANNEL, microId);
 }

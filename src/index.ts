@@ -3,7 +3,6 @@ import initClient from './SocketClient';
 import SocketServer from './SocketServer';
 interface LaunchEnv {
   MODE: string;
-  SERVER: string;
   SERVER_PORT: string;
 }
 const {

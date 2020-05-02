@@ -10,7 +10,7 @@ import {
 import { createStore, applyMiddleware } from 'redux';
 import initSocket, { emitAnyAction, socket } from './socket';
 import { scanNewMicros, microIdSerialMap } from './serial';
-export default function initClient() {
+export default function initClient(): void {
   initSocket();
   const middleware = applyMiddleware(
     logActionMiddleware(),
