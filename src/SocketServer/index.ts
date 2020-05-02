@@ -1,7 +1,8 @@
 import io from 'socket.io';
-import {createStore} from 'redux';
+import {createStore, applyMiddleware} from 'redux';
 import {
-  rootReducer, resetAllMicrosState, AllActions, MicroState
+  rootReducer, resetAllMicrosState, AllActions, MicroState,
+  logActionMiddleware,
 } from '../Shared/store';
 import {
   ClientEmitEvent, SharedEmitEvent, WebEmitEvent
@@ -9,7 +10,13 @@ import {
 const { INIT_LIGHT_CLIENT, ADD_MICRO_CHANNEL } = ClientEmitEvent;
 const { ROOT_ACTION, RE_INIT_APP_STATE } = SharedEmitEvent;
 const { INIT_WEB_CLIENT } = WebEmitEvent;
-const store = createStore(rootReducer);
+const middleware = applyMiddleware(
+  logActionMiddleware(),
+);
+const store = createStore(
+  rootReducer,
+  middleware,
+);
 const dispatch = store.dispatch;
 class SocketServer {
   server: SocketIO.Server;
