@@ -1,7 +1,8 @@
 import './socket';
 import {
   rootReducer, AllActions, emitActionMiddleware,
-  actionToMicroCommandMiddleware, RootState, addMicros
+  actionToMicroCommandMiddleware, RootState, addMicros,
+  logActionMiddleware
 } from '../Shared/store';
 import {
   SharedEmitEvent,
@@ -12,6 +13,7 @@ import { scanNewMicros, microIdSerialMap } from './serial';
 export default function initClient() {
   initSocket();
   const middleware = applyMiddleware(
+    logActionMiddleware(),
     emitActionMiddleware<RootState>(emitAnyAction),
     actionToMicroCommandMiddleware(microIdSerialMap),
   );
