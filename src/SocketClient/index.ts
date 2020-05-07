@@ -29,6 +29,6 @@ export default function initClient(): void {
   });
   socket.on(RE_INIT_APP_STATE, () => {
     const {remoteLightsEntity: {micros, segments}} = store.getState();
-    socket.emit(ROOT_ACTION, addMicros({remoteLightsMicros: {micros, segments}}))
+    socket.emit(ROOT_ACTION, addMicros({micros, segments}))
   });
 }

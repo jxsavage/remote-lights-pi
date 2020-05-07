@@ -65,9 +65,9 @@ export class MicroController implements MicroActionsInterface {
   }
   setSegmentEffect:
   MicroActionsInterface['setSegmentEffect'] = (
-    { effect, segmentIndex }
+    { newEffect, segmentIndex }
   ) => {
-    const command = JSON.stringify([SET_SEGMENT_EFFECT, effect, segmentIndex]);
+    const command = JSON.stringify([SET_SEGMENT_EFFECT, newEffect, segmentIndex]);
     this.serial.write(`${command}\n`);
     this.serial.drain();
   }
