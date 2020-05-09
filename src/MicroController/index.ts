@@ -3,8 +3,8 @@ import {
   AllActions, MicroActionsInterface, MicroState,
   addMicroFromControllerResponse, MICRO_COMMAND,
 } from '../Shared/store'
-import { MicroStateResponse } from 'Shared/store/types';
-import { SocketDestination } from 'Shared/socket';
+import { MicroStateResponse } from '../Shared/store/types';
+import { SocketDestination } from '../Shared/socket';
 
 const {
   GET_STATE, RESET_MICRO_STATE, RESIZE_SEGMENTS_FROM_BOUNDARIES,
