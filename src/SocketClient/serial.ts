@@ -1,10 +1,10 @@
 import SerialPort, { parsers, list } from 'serialport';
 import MicroController from '../MicroController';
 import {
-  MicroState, removeMicros, convertToEmittableAction, AllActions,
+  MicroState, removeMicros, AllActions,
 } from '../Shared/store';
+import { SocketDestination } from '../Shared/socket';
 import { addMicroChannel } from './socket';
-import { Dispatch } from 'redux';
 
 const parser = new parsers
   .Readline({delimiter:'\n', encoding: 'utf8', includeDelimiter: false});
@@ -44,14 +44,14 @@ export function initSerialPort(portInfo: SerialPort.PortInfo): SerialPort {
   });
   return serial;
 }
-export function scanNewMicros(dispatch: Dispatch<AllActions>): () => void {
+export function scanNewMicros(dispatchAndEmit: (action: AllActions, destination: string) => void): () => void {
   return function scan(): void {
     scanSerial().then((portInfoArr) => {
       const uninitialized = portInfoArr.filter((portInfo)=>{
         return !portPathSerialMap.has(portInfo.path);
       });
       const newSerialConnections = uninitialized.map((portInfo) => {
-        return new MicroController(initSerialPort(portInfo), dispatch);
+        return new MicroController(initSerialPort(portInfo), dispatchAndEmit);
       });
 
       Promise.all(newSerialConnections.map(micro => micro.initialize()))
@@ -61,9 +61,10 @@ export function scanNewMicros(dispatch: Dispatch<AllActions>): () => void {
           addMicroChannel(microId);
           microIdSerialMap.set(microId, micro);
           micro.serial.on('disconnect', () => {
-            dispatch(convertToEmittableAction(
+            dispatchAndEmit(
               removeMicros({microIds: [microId]}),
-            ));
+              SocketDestination.WEB_CLIENTS
+            );
             microIdSerialMap.delete(microId);
           });
         });

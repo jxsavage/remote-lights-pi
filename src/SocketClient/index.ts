@@ -5,23 +5,28 @@ import {
   logActionMiddleware
 } from '../Shared/store';
 import {
-  SharedEmitEvent,
+  SharedEmitEvent, SocketSource,
 } from '../Shared/socket';
-import { createStore, applyMiddleware } from 'redux';
+import { createStore, applyMiddleware, AnyAction } from 'redux';
 import initSocket, { emitAnyAction, socket } from './socket';
 import { scanNewMicros, microIdSerialMap } from './serial';
 export default function initClient(): void {
   initSocket();
+  const {LIGHT_CLIENT} = SocketSource;
+  const [andEmit, emitMiddlware] = emitActionMiddleware<RootState>(emitAnyAction, LIGHT_CLIENT);
   const middleware = applyMiddleware(
     logActionMiddleware(),
-    emitActionMiddleware<RootState>(emitAnyAction),
+    emitMiddlware,
     actionToMicroCommandMiddleware(microIdSerialMap),
   );
   const store = createStore(
     rootReducer,
     middleware,
   );
-  setInterval(scanNewMicros(store.dispatch), 1000);
+  const dispatchAndEmit = (action: AllActions, destination: string): void => {
+    store.dispatch(andEmit(action, destination))
+  }
+  setInterval(scanNewMicros(dispatchAndEmit), 1000);
   
   const { ROOT_ACTION, RE_INIT_APP_STATE } = SharedEmitEvent;
   socket.on(ROOT_ACTION, (action: AllActions) => {

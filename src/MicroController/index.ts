@@ -1,10 +1,10 @@
 import SerialPort from 'serialport';
 import { 
   AllActions, MicroActionsInterface, MicroState,
-  addMicroFromControllerResponse, convertToEmittableAction, MICRO_COMMAND,
+  addMicroFromControllerResponse, MICRO_COMMAND,
 } from '../Shared/store'
-import { Dispatch } from 'redux';
 import { MicroStateResponse } from 'Shared/store/types';
+import { SocketDestination } from 'Shared/socket';
 
 const {
   GET_STATE, RESET_MICRO_STATE, RESIZE_SEGMENTS_FROM_BOUNDARIES,
@@ -14,13 +14,13 @@ const {
 export class MicroController implements MicroActionsInterface {
   microId!: MicroState['microId'];
   serial: SerialPort;
-  dispatch: Dispatch<AllActions>;
+  dispatch: (action: AllActions, destination: string) => void;
   initialized: boolean;
   static cmdGetInfo = `${JSON.stringify([MICRO_COMMAND.GET_STATE])}\n`;
   
   constructor(
     serialPort: SerialPort,
-    dispatch: Dispatch<AllActions>,
+    dispatch: (action: AllActions, destination: string) => void,
   ){
     this.initialized = false;
     this.serial = serialPort;
@@ -73,12 +73,12 @@ export class MicroController implements MicroActionsInterface {
   }
   dataHandler = (data: string): void => {
     const handleInfo = (microStateResponse: MicroStateResponse): void => {
+      const [, microId] = microStateResponse;
       this.dispatch(
-      convertToEmittableAction(
         addMicroFromControllerResponse(
           {microResponse: microStateResponse}
-      )));
-      this.microId = microStateResponse[1];
+      ), SocketDestination.WEB_CLIENTS);
+      this.microId = microId;
     }
     type MicroResponse = number[];
     const handleResponse = (response: MicroResponse): void => {
