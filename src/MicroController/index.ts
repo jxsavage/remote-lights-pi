@@ -33,17 +33,17 @@ export class MicroController implements MicroActionsInterface {
   }
   splitSegment:
   MicroActionsInterface['splitSegment'] = (
-    { newEffect, direction, segmentIndex }
+    { newEffect, direction, segmentId, newSegmentId }
   ) => {
-    const command = JSON.stringify([SPLIT_SEGMENT, newEffect,  direction, segmentIndex]);
+    const command = JSON.stringify([SPLIT_SEGMENT, newEffect,  direction, segmentId, newSegmentId]);
     this.serial.write(`${command}\n`);
     this.serial.drain();
   }
   mergeSegments:
   MicroActionsInterface['mergeSegments'] = (
-    { direction, segmentIndex }
+    { direction, segmentId }
   ) => {
-    const command = JSON.stringify([MERGE_SEGMENTS, segmentIndex, direction]);
+    const command = JSON.stringify([MERGE_SEGMENTS, segmentId, direction]);
     this.serial.write(`${command}\n`);
     this.serial.drain();
   }
@@ -65,9 +65,9 @@ export class MicroController implements MicroActionsInterface {
   }
   setSegmentEffect:
   MicroActionsInterface['setSegmentEffect'] = (
-    { newEffect, segmentIndex }
+    { newEffect, segmentId }
   ) => {
-    const command = JSON.stringify([SET_SEGMENT_EFFECT, newEffect, segmentIndex]);
+    const command = JSON.stringify([SET_SEGMENT_EFFECT, newEffect, segmentId]);
     this.serial.write(`${command}\n`);
     this.serial.drain();
   }
