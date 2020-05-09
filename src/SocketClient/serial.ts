@@ -5,9 +5,11 @@ import {
 } from '../Shared/store';
 import { SocketDestination } from '../Shared/socket';
 import { addMicroChannel } from './socket';
+import log from '../Shared/logger';
 
 const parser = new parsers
   .Readline({delimiter:'\n', encoding: 'utf8', includeDelimiter: false});
+
 const openOptions = {
   autoOpen: true,
   baudRate: 115200,
@@ -32,7 +34,7 @@ type portPath = string;
 const portPathSerialMap = new Map<portPath, SerialPort>();
 export function initSerialPort(portInfo: SerialPort.PortInfo): SerialPort {
   const {path} = portInfo;
-  console.log('Connecting to microcontroller on port', path);
+  log('bgGreen', `Connecting to microcontroller on port ${path}`);
   const serial = new SerialPort (
     path,
     openOptions
@@ -40,7 +42,8 @@ export function initSerialPort(portInfo: SerialPort.PortInfo): SerialPort {
   portPathSerialMap.set(serial.path, serial);
   serial.on('disconnect', () => {
     serial.removeAllListeners();
-    portPathSerialMap.delete(serial.path)
+    portPathSerialMap.delete(serial.path);
+    log('bgRed', `SerialPort ${serial.path} disconnect setup listener.`);
   });
   return serial;
 }
@@ -55,7 +58,7 @@ export function scanNewMicros(dispatchAndEmit: (action: AllActions, destination:
       });
 
       Promise.all(newSerialConnections.map(micro => micro.initialize()))
-      .then((microArr)=>{
+      .then((microArr: MicroController[])=>{
         microArr.forEach((micro) => {
           const { microId } = micro;
           addMicroChannel(microId);
@@ -66,6 +69,7 @@ export function scanNewMicros(dispatchAndEmit: (action: AllActions, destination:
               SocketDestination.WEB_CLIENTS
             );
             microIdSerialMap.delete(microId);
+            log('bgRed', `SerialPort ${microId} disconnect microInit listener.`);
           });
         });
       });

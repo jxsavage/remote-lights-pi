@@ -2,14 +2,15 @@ import io from 'socket.io';
 import {createStore, applyMiddleware} from 'redux';
 import {
   rootReducer, resetAllMicrosState, AllActions, MicroState,
-  logActionMiddleware,
+  logActionMiddleware, initEntityState
 } from '../Shared/store';
 import {
-  ClientEmitEvent, SharedEmitEvent, WebEmitEvent
+  ClientEmitEvent, SharedEmitEvent, WebEmitEvent, SocketDestination
 } from '../Shared/socket';
 const { INIT_LIGHT_CLIENT, ADD_MICRO_CHANNEL } = ClientEmitEvent;
 const { ROOT_ACTION, RE_INIT_APP_STATE } = SharedEmitEvent;
 const { INIT_WEB_CLIENT } = WebEmitEvent;
+const {LIGHT_CLIENTS, WEB_CLIENTS} = SocketDestination;
 const middleware = applyMiddleware(
   logActionMiddleware(),
 );
@@ -32,11 +33,12 @@ class SocketServer {
     this.server
       .of('/server')
       .on('connection', (socket: SocketIO.Socket) => {   
-        socket.on(RE_INIT_APP_STATE, () =>{ 
+        socket.on(RE_INIT_APP_STATE, () =>{
+          dispatch(resetAllMicrosState());
           socket.broadcast.emit(RE_INIT_APP_STATE);
         });
         socket.on(INIT_LIGHT_CLIENT, (clientId: string) => {
-          socket.join('lightClients');
+          socket.join(LIGHT_CLIENTS);
           const hasClient = this.lightClients.has(clientId);
           if(!hasClient) this.lightClients.set(clientId, false);
           const isInitialized = this.lightClients.get(clientId);
@@ -49,11 +51,10 @@ class SocketServer {
           socket.join(String(microId));
         })
         socket.on(INIT_WEB_CLIENT, () => {
-          socket.join('webClients');
+          socket.join(WEB_CLIENTS);
           this.webClients.set(socket.id, socket);
-          const { remoteLightsEntity } = store.getState();
-          const resetStateAction = resetAllMicrosState({state: remoteLightsEntity});
-          socket.emit(ROOT_ACTION, resetStateAction);
+          const initState = initEntityState(store.getState().remoteLightsEntity);
+          socket.emit(ROOT_ACTION, initState);
         });
         socket.on(ROOT_ACTION, (rootAction: AllActions) => {
           dispatch(rootAction);
