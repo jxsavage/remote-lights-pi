@@ -7,15 +7,7 @@ import { SocketDestination } from '../Shared/socket';
 import { addMicroChannel } from './socket';
 import log from '../Shared/logger';
 
-const parser = new parsers
-  .Readline({delimiter:'\n', encoding: 'utf8', includeDelimiter: false});
 
-const openOptions = {
-  autoOpen: true,
-  baudRate: 115200,
-  parser: parser,
-  lock: false,
-}
 
 
 export function scanSerial(): Promise<SerialPort.PortInfo[]> {
@@ -29,23 +21,37 @@ export function scanSerial(): Promise<SerialPort.PortInfo[]> {
     });
   });
 }
+const {Readline} = parsers;
 export const microIdSerialMap = new Map<MicroState['microId'], MicroController>();
+
 type portPath = string;
+export type SerialWithParser = {
+  port: SerialPort;
+  parser: parsers.Readline;
+}
 const portPathSerialMap = new Map<portPath, SerialPort>();
-export function initSerialPort(portInfo: SerialPort.PortInfo): SerialPort {
+export function initSerialPort(portInfo: SerialPort.PortInfo): SerialWithParser {
   const {path} = portInfo;
   log('bgGreen', `Connecting to microcontroller on port ${path}`);
-  const serial = new SerialPort (
+  const parser = new Readline({delimiter:'\n', encoding: 'utf8'});
+
+  const openOptions = {
+    autoOpen: true,
+    baudRate: 115200,
+    lock: false,
+  }
+  const port = new SerialPort (
     path,
     openOptions
   );
-  portPathSerialMap.set(serial.path, serial);
-  serial.on('disconnect', () => {
-    serial.removeAllListeners();
-    portPathSerialMap.delete(serial.path);
-    log('bgRed', `SerialPort ${serial.path} disconnect setup listener.`);
+  port.pipe(parser);
+  portPathSerialMap.set(port.path, port);
+  port.on('disconnect', () => {
+    port.removeAllListeners();
+    portPathSerialMap.delete(port.path);
+    log('bgRed', `SerialPort ${port.path} disconnect setup listener.`);
   });
-  return serial;
+  return {port, parser};
 }
 export function scanNewMicros(dispatchAndEmit: (action: AllActions, destination: string) => void): () => void {
   return function scan(): void {
@@ -63,7 +69,7 @@ export function scanNewMicros(dispatchAndEmit: (action: AllActions, destination:
           const { microId } = micro;
           addMicroChannel(microId);
           microIdSerialMap.set(microId, micro);
-          micro.serial.on('disconnect', () => {
+          micro.serial.port.on('disconnect', () => {
             dispatchAndEmit(
               removeMicros({microIds: [microId]}),
               SocketDestination.WEB_CLIENTS

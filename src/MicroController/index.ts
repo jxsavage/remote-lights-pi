@@ -1,25 +1,29 @@
-import SerialPort from 'serialport';
 import { 
   AllActions, MicroActionsInterface, MicroState,
   addMicroFromControllerResponse, MICRO_COMMAND,
 } from '../Shared/store'
 import { MicroStateResponse } from '../Shared/store/types';
 import { SocketDestination } from '../Shared/socket';
-
+import { SerialWithParser } from '../SocketClient/serial';
+import log from '../Shared/logger';
+const time = new Date();
 const {
   GET_STATE, RESET_MICRO_STATE, RESIZE_SEGMENTS_FROM_BOUNDARIES,
   SET_SEGMENT_EFFECT, SPLIT_SEGMENT, MERGE_SEGMENTS, SET_MICRO_BRIGHTNESS
 } = MICRO_COMMAND;
-
+enum MicroMessage {
+  ERROR = 130, WARNING, INFO, DEBUG, PING, PONG, COMMAND_SUCCESS, COMMAND_FAILURE
+}
+const { ERROR, WARNING, INFO, DEBUG, PING } = MicroMessage;
 export class MicroController implements MicroActionsInterface {
   microId!: MicroState['microId'];
-  serial: SerialPort;
+  serial: SerialWithParser;
   dispatch: (action: AllActions, destination: string) => void;
   initialized: boolean;
   static cmdGetInfo = `${JSON.stringify([MICRO_COMMAND.GET_STATE])}\n`;
   
   constructor(
-    serialPort: SerialPort,
+    serialPort: SerialWithParser,
     dispatch: (action: AllActions, destination: string) => void,
   ){
     this.initialized = false;
@@ -27,8 +31,8 @@ export class MicroController implements MicroActionsInterface {
     this.dispatch = dispatch;
 
     
-    const { serial, dataHandler } = this;
-    serial.on('data', dataHandler);
+    const { serial: { parser, port }, dataHandler } = this;
+    parser.on('data', dataHandler);
     
   }
   splitSegment:
@@ -36,40 +40,40 @@ export class MicroController implements MicroActionsInterface {
     { newEffect, direction, segmentId, newSegmentId }
   ) => {
     const command = JSON.stringify([SPLIT_SEGMENT, newEffect,  direction, segmentId, newSegmentId]);
-    this.serial.write(`${command}\n`);
-    this.serial.drain();
+    this.serial.port.write(`${command}\n`);
+    this.serial.port.drain();
   }
   mergeSegments:
   MicroActionsInterface['mergeSegments'] = (
     { direction, segmentId }
   ) => {
     const command = JSON.stringify([MERGE_SEGMENTS, segmentId, direction]);
-    this.serial.write(`${command}\n`);
-    this.serial.drain();
+    this.serial.port.write(`${command}\n`);
+    this.serial.port.drain();
   }
   resizeSegmentsFromBoundaries:
   MicroActionsInterface['resizeSegmentsFromBoundaries'] = (
     { segmentBoundaries }
   ) => {
     const command = JSON.stringify([RESIZE_SEGMENTS_FROM_BOUNDARIES, segmentBoundaries]);
-    this.serial.write(`${command}\n`);
-    this.serial.drain();
+    this.serial.port.write(`${command}\n`);
+    this.serial.port.drain();
   }
   setMicroBrightness:
   MicroActionsInterface['setMicroBrightness'] = (
     { brightness }
   ) => {
     const command = JSON.stringify([SET_MICRO_BRIGHTNESS, brightness]);
-    this.serial.write(`${command}\n`);
-    this.serial.drain();
+    this.serial.port.write(`${command}\n`);
+    this.serial.port.drain();
   }
   setSegmentEffect:
   MicroActionsInterface['setSegmentEffect'] = (
     { newEffect, segmentId }
   ) => {
     const command = JSON.stringify([SET_SEGMENT_EFFECT, newEffect, segmentId]);
-    this.serial.write(`${command}\n`);
-    this.serial.drain();
+    this.serial.port.write(`${command}\n`);
+    this.serial.port.drain();
   }
   dataHandler = (data: string): void => {
     const handleInfo = (microStateResponse: MicroStateResponse): void => {
@@ -82,10 +86,33 @@ export class MicroController implements MicroActionsInterface {
     }
     type MicroResponse = number[];
     const handleResponse = (response: MicroResponse): void => {
-      if (response[0] === GET_STATE) {
-        handleInfo(response as MicroStateResponse);
-      } else {
-        console.log(`ERROR: Unkown response type:\n${JSON.stringify(response, null,'  ')}\n`);
+      const responseType = response[0];
+      switch(responseType) {
+        case GET_STATE:
+          handleInfo(response as MicroStateResponse); break;
+        case ERROR:
+        case WARNING:
+        case INFO:
+        case DEBUG:
+        case PING:
+          response.forEach((value, i) => {
+            const colors: Parameters<typeof log>[0][] = [
+              'bgGreen', 'textGreen', 
+              'bgRed', 'textRed', 
+              'bgYellow', 'textYellow',
+            ];
+            if (i === 0) {
+              log('info', `${MicroMessage[value]}`);
+            } else {
+              log(colors[(i-1)%6], `${value}`);
+            }
+          });
+          
+          log('infoHeader', `${time.getMinutes()}:${time.getSeconds()}`);
+          break;
+        default:
+          log('bgRed', `Error: Uknown response type:`);
+          log('textRed', JSON.stringify(response, null,'  '));
       }
     }
     try {
@@ -109,8 +136,8 @@ export class MicroController implements MicroActionsInterface {
         }
       }, 100, resolve);
 
-      this.serial.write(MicroController.cmdGetInfo);
-      this.serial.drain();
+      this.serial.port.write(MicroController.cmdGetInfo);
+      this.serial.port.drain();
     });
   }
 }
