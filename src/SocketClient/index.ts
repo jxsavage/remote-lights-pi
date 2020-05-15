@@ -5,9 +5,9 @@ import {
   logActionMiddleware
 } from '../Shared/store';
 import {
-  SharedEmitEvent, SocketSource,
+  SharedEmitEvent, SocketSource, SocketDestination
 } from '../Shared/socket';
-import { createStore, applyMiddleware, AnyAction } from 'redux';
+import { createStore, applyMiddleware } from 'redux';
 import initSocket, { emitAnyAction, socket } from './socket';
 import { scanNewMicros, microIdSerialMap } from './serial';
 export default function initClient(): void {
@@ -34,6 +34,6 @@ export default function initClient(): void {
   });
   socket.on(RE_INIT_APP_STATE, () => {
     const {remoteLightsEntity: {micros, segments}} = store.getState();
-    socket.emit(ROOT_ACTION, addMicros({micros, segments}))
+    socket.emit(ROOT_ACTION, andEmit(addMicros({micros, segments}), SocketDestination.WEB_CLIENTS, true));
   });
 }

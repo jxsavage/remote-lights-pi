@@ -6,7 +6,6 @@ import { MicroStateResponse } from '../Shared/store/types';
 import { SocketDestination } from '../Shared/socket';
 import { SerialWithParser } from '../SocketClient/serial';
 import log from '../Shared/logger';
-const time = new Date();
 const {
   GET_STATE, RESET_MICRO_STATE, RESIZE_SEGMENTS_FROM_BOUNDARIES,
   SET_SEGMENT_EFFECT, SPLIT_SEGMENT, MERGE_SEGMENTS, SET_MICRO_BRIGHTNESS
@@ -108,7 +107,7 @@ export class MicroController implements MicroActionsInterface {
             }
           });
           
-          log('infoHeader', `${time.getMinutes()}:${time.getSeconds()}`);
+          log('infoHeader', `${new Date().getMinutes()}:${new Date().getSeconds()}`);
           break;
         default:
           log('bgRed', `Error: Uknown response type:`);
