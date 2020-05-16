@@ -24,7 +24,7 @@ export default function initSocket(): void {
   });
 }
 export function addMicroChannel(microId: MicroState['microId']): void {
-  socket.emit(ADD_MICRO_CHANNEL, microId);
+  socket.emit(ADD_MICRO_CHANNEL, String(microId));
 }
 const { ROOT_ACTION } = SharedEmitEvent;
 export function emitAnyAction(action: AnyAction): void {

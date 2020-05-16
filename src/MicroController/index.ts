@@ -46,7 +46,7 @@ export class MicroController implements MicroActionsInterface {
   MicroActionsInterface['mergeSegments'] = (
     { direction, segmentId }
   ) => {
-    const command = JSON.stringify([MERGE_SEGMENTS, segmentId, direction]);
+    const command = JSON.stringify([MERGE_SEGMENTS, direction, segmentId]);
     this.serial.port.write(`${command}\n`);
     this.serial.port.drain();
   }
