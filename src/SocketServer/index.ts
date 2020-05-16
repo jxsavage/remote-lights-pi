@@ -2,7 +2,8 @@ import io from 'socket.io';
 import {createStore, applyMiddleware} from 'redux';
 import {
   rootReducer, resetAllMicrosState, AllActions, MicroState,
-  logActionMiddleware, initEntityState, GroupActionType, MicroActionType, EmittableEntityActions, setSegmentEffect, MicroEffect
+  logActionMiddleware, initEntityState, GroupActionType, MicroActionType,
+  EmittableEntityActions, setSegmentEffect, MicroEffect, MicroEntityTypes
 } from '../Shared/store';
 import {
   ClientEmitEvent, SharedEmitEvent, WebEmitEvent, SocketDestination, SocketSource
@@ -17,7 +18,9 @@ const {
   MERGE_SEGMENTS, SPLIT_SEGMENT, RESET_MICRO_STATE, SET_SEGMENT_EFFECT,
   SET_MICRO_BRIGHTNESS, RESIZE_SEGMENTS_FROM_BOUNDARIES
 } = MicroActionType;
-
+const {
+  ADD_MICROS, ADD_MICRO_FROM_CONTROLLER_RESPONSE
+} = MicroEntityTypes;
 const middleware = applyMiddleware(
   logActionMiddleware(),
 );
@@ -36,7 +39,7 @@ class SocketServer {
     this.lightClients = new Map();
     this.initializeServer();
   }
-  initializeServer(): void {
+  initializeServer = (): void => {
     this.server
       .of('/server')
       .on('connection', (socket: SocketIO.Socket) => {   
@@ -66,7 +69,7 @@ class SocketServer {
         socket.on(ROOT_ACTION, (action: EmittableEntityActions) => {
           dispatch(action);
           switch(action.type) {
-            case "ADD_MICROS":
+            case ADD_MICROS:
             case MERGE_SEGMENTS:
             case SPLIT_SEGMENT:
             case SET_SEGMENT_EFFECT:
@@ -93,7 +96,7 @@ class SocketServer {
               socket.broadcast.to(WEB_CLIENTS).emit(ROOT_ACTION, action);
               break;
             }
-            case "ADD_MICRO_FROM_CONTROLLER_RESPONSE":
+            case ADD_MICRO_FROM_CONTROLLER_RESPONSE:
               socket.broadcast.to(WEB_CLIENTS).emit(ROOT_ACTION, action);
               break;
             default:
