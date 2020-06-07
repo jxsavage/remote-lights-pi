@@ -26,7 +26,7 @@ export default function initClient(): void {
   const dispatchAndEmit = (action: AllActions, destination: string): void => {
     store.dispatch(andEmit(action, destination))
   }
-  setInterval(scanNewMicros(dispatchAndEmit), 1000);
+  setInterval(scanNewMicros(dispatchAndEmit), 3000);
   
   const { ROOT_ACTION, RE_INIT_APP_STATE } = SharedEmitEvent;
   socket.on(ROOT_ACTION, (action: AllActions) => {

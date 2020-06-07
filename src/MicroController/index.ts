@@ -6,9 +6,11 @@ import { MicroStateResponse } from '../Shared/store/types';
 import { SocketDestination } from '../Shared/socket';
 import { SerialWithParser } from '../SocketClient/serial';
 import log from '../Shared/logger';
+import { generateId } from '../Shared/store/utils';
 const {
   GET_STATE, RESET_MICRO_STATE, RESIZE_SEGMENTS_FROM_BOUNDARIES,
-  SET_SEGMENT_EFFECT, SPLIT_SEGMENT, MERGE_SEGMENTS, SET_MICRO_BRIGHTNESS
+  SET_SEGMENT_EFFECT, SPLIT_SEGMENT, MERGE_SEGMENTS, SET_MICRO_BRIGHTNESS,
+  SET_MICRO_ID, SET_SEGMENT_ID,
 } = MICRO_COMMAND;
 enum MicroMessage {
   ERROR = 130, WARNING, INFO, DEBUG, PING, PONG, COMMAND_SUCCESS, COMMAND_FAILURE
@@ -77,11 +79,29 @@ export class MicroController implements MicroActionsInterface {
   dataHandler = (data: string): void => {
     const handleInfo = (microStateResponse: MicroStateResponse): void => {
       const [, microId] = microStateResponse;
+      const microState = microStateResponse;
+      if(microId === 0) {
+        const newMicroId = generateId();
+        microState[1] = newMicroId;
+        const setMicroIdCommand = JSON.stringify([SET_MICRO_ID, newMicroId]);
+        this.serial.port.write(`${setMicroIdCommand}\n`);
+        // this.serial.port.drain();
+        const [,,,,segmentsResponse] = microState;
+        microState[4] = segmentsResponse.map((segment) => {
+          const oldId = segment[3];
+          const newId = generateId();
+          segment[3] = newId;
+          const setSegmentIdCommand = JSON.stringify([SET_SEGMENT_ID, oldId, newId]);
+          this.serial.port.write(`${setSegmentIdCommand}\n`);
+          // this.serial.port.drain();
+          return segment;
+        })
+      }
       this.dispatch(
         addMicroFromControllerResponse(
-          {microResponse: microStateResponse}
+          {microResponse: microState}
       ), SocketDestination.WEB_CLIENTS);
-      this.microId = microId;
+      this.microId = microState[1];
     }
     type MicroResponse = number[];
     const handleResponse = (response: MicroResponse): void => {
