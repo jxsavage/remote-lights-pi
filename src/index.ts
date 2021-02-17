@@ -3,11 +3,11 @@ import initClient from './SocketClient';
 import SocketServer from './SocketServer';
 interface LaunchEnv {
   MODE: string;
-  SERVER_PORT: string;
+  REACT_APP_SOCKET_PORT: string;
 }
 const {
   MODE,
-  SERVER_PORT
+  REACT_APP_SOCKET_PORT
 } = process.env as unknown as LaunchEnv;
 
 if(MODE=='client') {
@@ -17,5 +17,5 @@ if(MODE=='client') {
 }
 if(MODE=='server') {
   console.log('Launching Pi in server only mode...')
-  new SocketServer(SERVER_PORT);
+  new SocketServer(REACT_APP_SOCKET_PORT);
 }

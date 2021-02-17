@@ -6,19 +6,19 @@ import {
 } from '../Shared/socket';
 import { MicroState } from 'Shared/store';
 interface ClientEnv {
-  SERVER_IP: string;
-  SERVER_PORT: string;
+  REACT_APP_SOCKET_IP: string;
+  REACT_APP_SOCKET_PORT: string;
   CLIENT_ID: string;
 }
 const {
-  SERVER_IP,
-  SERVER_PORT,
+  REACT_APP_SOCKET_IP,
+  REACT_APP_SOCKET_PORT,
   CLIENT_ID
 } = process.env as unknown as ClientEnv;
 export let socket: SocketIOClient.Socket;
 const {INIT_LIGHT_CLIENT, ADD_MICRO_CHANNEL} = ClientEmitEvent;
 export default function initSocket(): void {
-  socket = connect(`http://${SERVER_IP}:${SERVER_PORT}/server`);
+  socket = connect(`http://${REACT_APP_SOCKET_IP}:${REACT_APP_SOCKET_PORT}/server`);
   socket.on('connect', () => {
     socket.emit(INIT_LIGHT_CLIENT, CLIENT_ID);
   });
