@@ -78,7 +78,12 @@ export function scanNewMicros(dispatchAndEmit: (action: AllActions, destination:
             log('bgRed', `SerialPort ${microId} disconnect microInit listener.`);
           });
         });
+      })
+      .catch((reason) => {
+        log('bgRed', `Error adding new serial connection: ${reason}`)
       });
+    }).catch((reason) => {
+      log('bgRed', `Error scanning new serial connections: ${reason}`)
     });
   }
 }
