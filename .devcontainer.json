@@ -1,0 +1,9 @@
+{
+  "image": "192.168.0.2:5001/remote-lights_socket:development",
+  "extensions": [
+	"dbaeumer.vscode-eslint",
+	"mikestead.dotenv"
+  ],
+  "forwardPorts": [5000],
+  "postAttachCommand": "npm run dev"
+}
