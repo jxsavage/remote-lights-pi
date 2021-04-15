@@ -4,6 +4,6 @@
 	"dbaeumer.vscode-eslint",
 	"mikestead.dotenv"
   ],
-  "forwardPorts": [5000],
+  "appPort": ["5000:5000"],
   "postAttachCommand": "npm run dev"
 }
