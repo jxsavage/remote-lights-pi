@@ -4,27 +4,17 @@ import {createStore, applyMiddleware} from 'redux';
 import {
   rootReducer, resetAllMicrosState, AllActions, MicroState,
   logActionMiddleware, initEntityState, GroupActionType, MicroActionType,
-  EmittableEntityActions, setSegmentEffect, MicroEffect, MicroEntityTypes
+  setSegmentEffect, MicroEffect, MicroEntityTypes, addMicros
 } from '../Shared/store';
 import {
-  ClientEmitEvent, SharedEmitEvent, WebEmitEvent, SocketDestination, SocketSource
+  ClientEmitEvent, SharedEmitEvent, WebEmitEvent,
+  MicroEmitEvent, SocketDestination, SocketSource
 } from '../Shared/socket';
-import { addMicroFromControllerResponse } from './redis'
+// import { addMicroFromControllerResponse } from './redis'
 import log from "../Shared/logger";
+import { AddMicrosPayload } from "../Shared/store/actions/microsEntity";
+import { writeMicros } from "./redis/addMicros";
 
-const { INIT_LIGHT_CLIENT, ADD_MICRO_CHANNEL } = ClientEmitEvent;
-const { ROOT_ACTION, RE_INIT_APP_STATE } = SharedEmitEvent;
-const { INIT_WEB_CLIENT } = WebEmitEvent;
-const {LIGHT_CLIENTS, WEB_CLIENTS} = SocketDestination;
-const {LIGHT_CLIENT, WEB_CLIENT} = SocketSource;
-const { SET_GROUP_EFFECT } = GroupActionType;
-const {
-  MERGE_SEGMENTS, SPLIT_SEGMENT, RESET_MICRO_STATE, SET_SEGMENT_EFFECT,
-  SET_MICRO_BRIGHTNESS, RESIZE_SEGMENTS_FROM_BOUNDARIES
-} = MicroActionType;
-const {
-  ADD_MICROS, ADD_MICRO_FROM_CONTROLLER_RESPONSE
-} = MicroEntityTypes;
 const middleware = applyMiddleware(
   logActionMiddleware(),
 );
@@ -39,36 +29,61 @@ const io = new Server(httpServer, {
     origin: "http://localhost:3000",
     methods: ["GET", "POST"]
   }
-})
+});
 const dispatch = store.dispatch;
 
 io
   .of('/server')
   .on('connection', (socket: Socket) => {   
-    socket.on(RE_INIT_APP_STATE, () =>{
+    socket.on(SharedEmitEvent.RE_INIT_APP_STATE, () =>{
       dispatch(resetAllMicrosState());
-      socket.broadcast.emit(RE_INIT_APP_STATE);
+      socket.broadcast.emit(SharedEmitEvent.RE_INIT_APP_STATE);
     });
-    socket.on(INIT_LIGHT_CLIENT, (clientId: string) => {
-      socket.join(LIGHT_CLIENTS);
-      socket.emit(RE_INIT_APP_STATE);
-      // const hasClient = this.lightClients.has(clientId);
-      // if(!hasClient) this.lightClients.set(clientId, false);
-      // const isInitialized = this.lightClients.get(clientId);
-      // if(true) {
-      //   this.lightClients.set(clientId, true);
-      // }
+    /**
+     * Socket Client Events
+     */
+    socket.on(ClientEmitEvent.INIT_LIGHT_CLIENT, (clientId: string) => {
+      socket.join(SocketDestination.LIGHT_CLIENTS);
+      socket.emit(SharedEmitEvent.RE_INIT_APP_STATE);
     });
-    socket.on(ADD_MICRO_CHANNEL, (microId: MicroState['microId']) => {
+    socket.on(ClientEmitEvent.ADD_MICRO_CHANNEL, (microId: MicroState['microId']) => {
       socket.join(String(microId));
     })
-    socket.on(INIT_WEB_CLIENT, () => {
-      socket.join(WEB_CLIENTS);
-      // this.webClients.set(socket.id, socket);
+    /**
+     * Web Client Events
+     */
+    socket.on(WebEmitEvent.INIT_WEB_CLIENT, () => {
+      socket.join(SocketDestination.WEB_CLIENTS);
       const initState = initEntityState(store.getState().remoteLightsEntity);
-      socket.emit(ROOT_ACTION, initState);
+      socket.emit(SharedEmitEvent.ROOT_ACTION, initState);
     });
-    socket.on(ROOT_ACTION, (action: AllActions) => {
+    /**
+     * Microcontroller Events
+     */
+    socket.on(MicroEmitEvent.INIT_MICRO, (microId: MicroState['microId']) => {
+      socket.join(SocketDestination.MICROS)
+      socket.join(String(microId));
+    });
+    socket.on(MicroEntityTypes.ADD_MICROS, (payload: AddMicrosPayload) => {
+      writeMicros(payload).exec((err, results) => {
+        if(err) {
+          log('bgRed', err.message)
+        } else {
+          socket.broadcast
+          .to(SocketDestination.WEB_CLIENTS)
+          .emit(SharedEmitEvent.ROOT_ACTION, addMicros(payload));
+        }
+      })
+    })
+    const { SET_GROUP_EFFECT } = GroupActionType;
+    const {
+      MERGE_SEGMENTS, SPLIT_SEGMENT, SET_SEGMENT_EFFECT,
+      SET_MICRO_BRIGHTNESS, RESIZE_SEGMENTS_FROM_BOUNDARIES
+    } = MicroActionType;
+    const {
+      ADD_MICROS, ADD_MICRO_FROM_CONTROLLER_RESPONSE
+    } = MicroEntityTypes;
+    socket.on(SharedEmitEvent.ROOT_ACTION, (action: AllActions) => {
       dispatch(action);
       switch(action.type) {
         case ADD_MICROS:
@@ -79,11 +94,11 @@ io
         case RESIZE_SEGMENTS_FROM_BOUNDARIES: {
           if('meta' in action) {
             const { source, destination } = action.meta.socket;
-            if ( source === WEB_CLIENT ) {
-              socket.broadcast.to(WEB_CLIENTS).emit(ROOT_ACTION, action);
-              socket.to(destination).emit(ROOT_ACTION, action);
-            } else if (source === LIGHT_CLIENT) {
-              socket.to(WEB_CLIENTS).emit(ROOT_ACTION, action);
+            if ( source === SocketSource.WEB_CLIENT ) {
+              socket.broadcast.to(SocketDestination.WEB_CLIENTS).emit(SharedEmitEvent.ROOT_ACTION, action);
+              socket.to(destination).emit(SharedEmitEvent.ROOT_ACTION, action);
+            } else if (source === SocketSource.LIGHT_CLIENT) {
+              socket.to(SocketDestination.WEB_CLIENTS).emit(SharedEmitEvent.ROOT_ACTION, action);
             }
           }
           break;
@@ -95,22 +110,22 @@ io
             (segmentId) => segments.byId[segmentId]);
           LEDSegments.forEach(({microId, segmentId}) => {
             const setEffectAction = setSegmentEffect({newEffect: (newEffect as MicroEffect), microId, segmentId });
-            socket.to(String(microId)).emit(ROOT_ACTION, setEffectAction);
+            socket.to(String(microId)).emit(SharedEmitEvent.ROOT_ACTION, setEffectAction);
           });
-          socket.broadcast.to(WEB_CLIENTS).emit(ROOT_ACTION, action);
+          socket.broadcast.to(SocketDestination.WEB_CLIENTS).emit(SharedEmitEvent.ROOT_ACTION, action);
           break;
         }
         case ADD_MICRO_FROM_CONTROLLER_RESPONSE:
-          addMicroFromControllerResponse(action.payload)
-            .then(() => {
-              socket.broadcast.to(WEB_CLIENTS).emit(ROOT_ACTION, action);
-            })
-            .catch((err) => {
-              log('bgRed', `
-                Error adding microcontroller to redis from microcontroller response:
-                Message: ${err}
-              `);
-            })
+          // addMicroFromControllerResponse(action.payload)
+          //   .then(() => {
+          //     socket.broadcast.to(SocketDestination.WEB_CLIENTS).emit(SharedEmitEvent.ROOT_ACTION, action);
+          //   })
+          //   .catch((err: Error) => {
+          //     log('bgRed', `
+          //       Error adding microcontroller to redis from microcontroller response:
+          //       Message: ${err}
+          //     `);
+          //   })
           break;
         default:
           break;
