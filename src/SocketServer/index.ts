@@ -3,8 +3,8 @@ import {Socket, Server} from 'socket.io';
 import {createStore, applyMiddleware} from 'redux';
 import {
   rootReducer, resetAllMicrosState, AllActions, MicroState,
-  logActionMiddleware, initEntityState, GroupActionType, MicroActionType,
-  setSegmentEffect, MicroEffect, MicroEntityTypes, addMicros
+  logActionMiddleware, GroupActionType, MicroActionType,
+  setSegmentEffect, MicroEffect, MicroEntityActionType, addMicros
 } from '../Shared/store';
 import {
   ClientEmitEvent, SharedEmitEvent, WebEmitEvent,
@@ -13,7 +13,8 @@ import {
 // import { addMicroFromControllerResponse } from './redis'
 import log from "../Shared/logger";
 import { AddMicrosPayload } from "../Shared/store/actions/microsEntity";
-import { writeMicros } from "./redis/addMicros";
+import { writeMicros } from "./redis/writeMicros";
+import { readMicros } from "./redis/readMicros";
 
 const middleware = applyMiddleware(
   logActionMiddleware(),
@@ -52,10 +53,25 @@ io
     /**
      * Web Client Events
      */
-    socket.on(WebEmitEvent.INIT_WEB_CLIENT, () => {
+    socket.on(WebEmitEvent.INIT_WEB_CLIENT, async () => {
       socket.join(SocketDestination.WEB_CLIENTS);
-      const initState = initEntityState(store.getState().remoteLightsEntity);
-      socket.emit(SharedEmitEvent.ROOT_ACTION, initState);
+      const payload = await readMicros();
+      socket.emit(SharedEmitEvent.ROOT_ACTION, addMicros(payload));
+    });
+    socket.on(MicroActionType.SPLIT_SEGMENT, () => {
+      //TO-DO
+    });
+    socket.on(MicroActionType.MERGE_SEGMENTS, () => {
+      //TO-DO
+    });
+    socket.on(MicroActionType.SET_SEGMENT_EFFECT, () => {
+      //TO-DO
+    });
+    socket.on(MicroActionType.SET_MICRO_BRIGHTNESS, () => {
+      //TO-DO
+    });
+    socket.on(MicroActionType.RESIZE_SEGMENTS_FROM_BOUNDARIES, () => {
+      //TO-DO
     });
     /**
      * Microcontroller Events
@@ -64,25 +80,20 @@ io
       socket.join(SocketDestination.MICROS)
       socket.join(String(microId));
     });
-    socket.on(MicroEntityTypes.ADD_MICROS, (payload: AddMicrosPayload) => {
-      writeMicros(payload).exec((err, results) => {
-        if(err) {
-          log('bgRed', err.message)
-        } else {
-          socket.broadcast
+    socket.on(MicroEntityActionType.ADD_MICROS, async (payload: AddMicrosPayload) => {
+      await writeMicros(payload).exec();
+      socket.broadcast
           .to(SocketDestination.WEB_CLIENTS)
           .emit(SharedEmitEvent.ROOT_ACTION, addMicros(payload));
-        }
-      })
-    })
+    });
     const { SET_GROUP_EFFECT } = GroupActionType;
     const {
       MERGE_SEGMENTS, SPLIT_SEGMENT, SET_SEGMENT_EFFECT,
       SET_MICRO_BRIGHTNESS, RESIZE_SEGMENTS_FROM_BOUNDARIES
     } = MicroActionType;
     const {
-      ADD_MICROS, ADD_MICRO_FROM_CONTROLLER_RESPONSE
-    } = MicroEntityTypes;
+      ADD_MICROS
+    } = MicroEntityActionType;
     socket.on(SharedEmitEvent.ROOT_ACTION, (action: AllActions) => {
       dispatch(action);
       switch(action.type) {
@@ -115,18 +126,6 @@ io
           socket.broadcast.to(SocketDestination.WEB_CLIENTS).emit(SharedEmitEvent.ROOT_ACTION, action);
           break;
         }
-        case ADD_MICRO_FROM_CONTROLLER_RESPONSE:
-          // addMicroFromControllerResponse(action.payload)
-          //   .then(() => {
-          //     socket.broadcast.to(SocketDestination.WEB_CLIENTS).emit(SharedEmitEvent.ROOT_ACTION, action);
-          //   })
-          //   .catch((err: Error) => {
-          //     log('bgRed', `
-          //       Error adding microcontroller to redis from microcontroller response:
-          //       Message: ${err}
-          //     `);
-          //   })
-          break;
         default:
           break;
       }

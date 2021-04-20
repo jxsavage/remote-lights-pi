@@ -1,4 +1,4 @@
-import { writeMicros } from './addMicros'
+import { writeMicros } from './writeMicros'
 
 
 export {
