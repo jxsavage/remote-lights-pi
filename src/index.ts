@@ -1,6 +1,9 @@
-require('dotenv').config();
-import SocketServer from './SocketServer';
-import log from './Shared/logger';
+import * as dotenv from 'dotenv';
+import SocketServer from 'SocketServer';
+import log from 'Shared/logger';
+
+dotenv.config();
+
 interface LaunchEnv {
   REACT_APP_SOCKET_IP: string;
   REACT_APP_SOCKET_PORT: string;

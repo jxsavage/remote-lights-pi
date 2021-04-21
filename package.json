@@ -4,9 +4,8 @@
   "description": "",
   "main": "src",
   "types": "src",
-  "type": "commonjs",
   "scripts": {
-    "start:dev": "node --trace-warnings --inspect=0.0.0.0 -r ts-node/register src/index.ts",
+    "start:dev": "ts-node -r tsconfig-paths/register src/index.ts",
     "dev": "nodemon --config nodemon.json",
     "build": "tsc",
     "start": "nodemon --config nodemon.prod.json",
@@ -34,9 +33,9 @@
     "dotenv": "^8.2.0",
     "ioredis": "^4.26.0",
     "nodemon": "^2.0.2",
-    "redux": "^4.0.5",
     "socket.io": "^4.0.1",
     "ts-node": "^9.1.1",
+    "tsconfig-paths": "^3.9.0",
     "typescript": "^3.8.3"
   }
 }

@@ -1,24 +1,31 @@
 import IORedis from 'ioredis';
-import log from '../../Shared/logger';
-import { LEDSegment, MicroState } from '../../Shared/store';
-import { AddMicrosPayload,  } from '../../Shared/store/actions/microsEntity';
-import { MicroId, MicrosAndSegmentsEntity, SegmentId } from '../../Shared/store/types';
+import log from 'Shared/logger';
+import {
+  MicroId, MicrosAndSegmentsEntity, SegmentId,
+} from 'Shared/store';
 import redisClient from './client';
 import {
-  RedisAllLEDSegmentIdsSet, RedisAllMicroIdsSet, RedisLEDSegmentHash, RedisMicroHash, RedisMicroLEDSegmentsBoundaries, RedisMicroLEDSegmentsList, RedisSets,
-} from './types';
-import { 
+  RedisAllLEDSegmentIdsSet, RedisAllMicroIdsSet,
+  RedisLEDSegmentHash, RedisMicroHash, RedisSets,
+  RedisMicroLEDSegmentsBoundaries, RedisMicroLEDSegmentsList,
   generateMicroSegmentListKey, generateSegmentBoundariesListKey,
-  generateSegmentHashKey, generateMicroHashKey, 
-} from './utils';
-
+  generateSegmentHashKey, generateMicroHashKey,
+} from 'SocketServer/redis';
+/**
+ * Adds SMEMBERS redis command to pipe to read all MicroIds.
+ * @param pipe 
+ * @returns The pipe with the command appended.
+ */
 function readAllMicroIds(pipe: IORedis.Pipeline): IORedis.Pipeline {
-  pipe.smembers(RedisSets.MicroIdSet);
-  return pipe;
+  return pipe.smembers(RedisSets.MicroIdSet);
 }
+/**
+ * Adds SMEMBERS redis command to pipe to read all SegmentIds.
+ * @param pipe 
+ * @returns The pipe with the command appended.
+ */
 function readAllSegmentIds(pipe: IORedis.Pipeline): IORedis.Pipeline {
-  pipe.smembers(RedisSets.SegmentIdSet);
-  return pipe;
+  return pipe.smembers(RedisSets.SegmentIdSet);
 }
 type RedisMicrosAndSegmentIdsResponse = [
   [Error | null, RedisAllMicroIdsSet],
@@ -41,22 +48,46 @@ async function readAllSegmentAndMicroIds():
   const results = await multi.exec() as unknown as RedisMicrosAndSegmentIdsResponse;
   return results;
 }
+/**
+ * Append HGETALL on the micros hash to the command pipe.
+ * @param pipe 
+ * @param microId 
+ * @returns The pipe with the command appended.
+ */
 function readMicroHash(pipe: IORedis.Pipeline , microId: MicroId | string): IORedis.Pipeline {
-  pipe.hgetall(generateMicroHashKey(microId));
-  return pipe;
+  return pipe.hgetall(generateMicroHashKey(microId));
 }
+/**
+ * Append LRANGE to the pipe on a micros segment list to retrieve it.
+ * @param pipe 
+ * @param microId 
+ * @returns The pipe with the command appended.
+ */
 function readMicroSegmentsList(pipe: IORedis.Pipeline, microId: MicroId | string): IORedis.Pipeline {
-  pipe.lrange(generateMicroSegmentListKey(microId), 0, -1);
-  return pipe;
+  return pipe.lrange(generateMicroSegmentListKey(microId), 0, -1);
 }
+/**
+ * Append LRANGE to the pipe on a micros segment boundaries list to retrive it.
+ * @param pipe 
+ * @param microId 
+ * @returns The pipe with the command appended.
+ */
 function readMicroSegmentBoundaries(pipe: IORedis.Pipeline, microId: MicroId | string): IORedis.Pipeline {
-  pipe.lrange(generateSegmentBoundariesListKey(microId), 0, -1);
-  return pipe;
+  return pipe.lrange(generateSegmentBoundariesListKey(microId), 0, -1);
 }
+/**
+ * Append HGETALL to the pipe on a LEDSegments hash to retrieve it.
+ * @param pipe 
+ * @param segmentId 
+ * @returns The pipe with the command appended.
+ */
 function readSegmentHash(pipe: IORedis.Pipeline , segmentId: SegmentId | string): IORedis.Pipeline {
-  pipe.hgetall(generateSegmentHashKey(segmentId));
-  return pipe;
+  return pipe.hgetall(generateSegmentHashKey(segmentId));
 }
+/**
+ * Reads all the Micros and LEDSegments in Redis.
+ * @returns A Promise of MicrosAndSegmentsEntity.
+ */
 export async function readMicros(): Promise<MicrosAndSegmentsEntity> {
   const allIds = await readAllSegmentAndMicroIds();
   const [[microsErr ,allMicroIds],[segmentsErr, allSegmentIds]

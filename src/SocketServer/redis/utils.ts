@@ -1,5 +1,4 @@
-import { MicroId, SegmentId } from "Shared/store/types";
-
+import { MicroId, SegmentId } from "Shared/store";
 
 /**
  * Generates segment boundary redis list key.

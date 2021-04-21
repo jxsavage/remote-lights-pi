@@ -1,13 +1,12 @@
 import IORedis from 'ioredis';
-import { LEDSegment } from '../../Shared/store';
-import { AddMicrosPayload,  } from '../../Shared/store/actions/microsEntity';
-import { MicroId, SegmentId } from '../../Shared/store/types';
+import {
+  LEDSegment, MicroId, SegmentId, AddMicrosPayload,
+} from 'Shared/store';
 import redisClient from './client';
-import { RedisSets } from './types';
 import { 
   generateMicroSegmentListKey, generateSegmentBoundariesListKey,
-  generateSegmentHashKey, generateMicroHashKey, 
-} from './utils';
+  generateSegmentHashKey, generateMicroHashKey, RedisSets
+} from 'SocketServer/redis';
 
 
 /**
@@ -99,6 +98,12 @@ function writeSegmentHash(
       "numLEDs", numLEDs,
       "offset", offset);
 }
+/**
+ * Appends the command to Write a Segments ID to the set and write the hash.
+ * @param pipe 
+ * @param LEDSegment 
+ * @returns The pipe with the command appended.
+ */
 function writeSegmentToMicro(
   pipe: IORedis.Pipeline, LEDSegment: LEDSegment
 ): IORedis.Pipeline {
@@ -123,6 +128,16 @@ function writeSegments(
       return pipeline;
     }, pipe);
 }
+/**
+ * Appends the commands to write the microId to the set,
+ * write the micros hash & write the segment.
+ * @param pipe 
+ * @param microId 
+ * @param totalLEDs 
+ * @param brightness 
+ * @param LEDSegments 
+ * @returns The pipe with the command appended.
+ */
 function writeMicro(
   pipe: IORedis.Pipeline, microId: MicroId, totalLEDs: number,
   brightness: number, LEDSegments: LEDSegment[]
