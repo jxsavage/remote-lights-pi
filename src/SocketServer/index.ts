@@ -1,9 +1,7 @@
 import { createServer } from "http";
 import {Socket, Server} from 'socket.io';
-import {
-  MicroState, MicroActionType,
-  MicroEntityActionType, addMicros
-} from 'Shared/store';
+import { MicroState, MicroActionType, MicroId } from 'Shared/types'
+import { MicroEntityActionType, addMicros } from 'Shared/store';
 
 import {
   ClientEmitEvent, SharedEmitEvent, WebEmitEvent,
@@ -11,8 +9,16 @@ import {
 } from 'Shared/socket';
 import log from "Shared/logger";
 import { AddMicrosPayload } from "Shared/store/actions";
-import { writeMicros } from "SocketServer/redis";
-import { readMicros } from "SocketServer/redis";
+import {
+  writeMergeSegments, writeMicros, readMicros,
+  writeSetMicroBrightness, writeSetSegmentEffect,
+  writeResizeSegmentsFromBoundaries, writeSplitSegment, flushAllRedis,
+} from "SocketServer/redis";
+import {
+  MergeSegmentsRedisAction, ResizeSegmentsFromBoundariesRedisAction,
+  SetMicroBrightnessRedisAction, SetSegmentEffectRedisAction,
+  SplitSegmentRedisAction,
+} from "Shared/redis";
 
 const httpServer = createServer();
 const io = new Server(httpServer, {
@@ -25,7 +31,8 @@ const io = new Server(httpServer, {
 io
   .of('/server')
   .on('connection', (socket: Socket) => {   
-    socket.on(SharedEmitEvent.RE_INIT_APP_STATE, () =>{
+    socket.on(SharedEmitEvent.RE_INIT_APP_STATE, async () =>{
+      await flushAllRedis();
       socket.broadcast.emit(SharedEmitEvent.RE_INIT_APP_STATE);
     });
     /**
@@ -46,20 +53,47 @@ io
       const payload = await readMicros();
       socket.emit(SharedEmitEvent.ROOT_ACTION, addMicros(payload));
     });
-    socket.on(MicroActionType.SPLIT_SEGMENT, () => {
-      //TO-DO
+    socket.on(
+      MicroActionType.SPLIT_SEGMENT,
+      ({type, payload, meta: { redis }}: SplitSegmentRedisAction) => {
+        const { microId } = payload;
+        writeSplitSegment(redis)
+        socket.to(String(microId)).emit(type, payload);
     });
-    socket.on(MicroActionType.MERGE_SEGMENTS, () => {
-      //TO-DO
+    socket.on(
+      MicroActionType.MERGE_SEGMENTS,
+      ({type, payload, meta: { redis }}: MergeSegmentsRedisAction) => {
+        const { microId } = payload;
+        writeMergeSegments(redis)
+        socket.to(String(microId)).emit(type, payload);
     });
-    socket.on(MicroActionType.SET_SEGMENT_EFFECT, () => {
-      //TO-DO
+    socket.on(
+      MicroActionType.SET_SEGMENT_EFFECT,
+      ({type, payload, meta: { redis }}: SetSegmentEffectRedisAction) => {
+        const { microId } = payload;
+        writeSetSegmentEffect(redis)
+        socket.to(String(microId)).emit(type, payload);
     });
-    socket.on(MicroActionType.SET_MICRO_BRIGHTNESS, () => {
-      //TO-DO
+    socket.on(
+      MicroActionType.SET_MICRO_BRIGHTNESS,
+      ({type, payload, meta: { redis }}: SetMicroBrightnessRedisAction) => {
+        const { microId } = payload;
+        writeSetMicroBrightness(redis)
+        socket.to(String(microId)).emit(type, payload);
     });
-    socket.on(MicroActionType.RESIZE_SEGMENTS_FROM_BOUNDARIES, () => {
-      //TO-DO
+    socket.on(
+      MicroActionType.RESIZE_SEGMENTS_FROM_BOUNDARIES,
+      ({type, payload, meta: { redis }}: ResizeSegmentsFromBoundariesRedisAction) => {
+        const { microId } = payload;
+        writeResizeSegmentsFromBoundaries(redis)
+        socket.to(String(microId)).emit(type, payload);
+    });
+
+    socket.on(MicroActionType.RESET_MICRO_STATE, (microId: MicroId) => {
+      socket.to(String(microId)).emit(MicroActionType.RESET_MICRO_STATE);
+    });
+    socket.on(MicroActionType.WRITE_EEPROM, (microId: MicroId) => {
+      socket.to(String(microId)).emit(MicroActionType.WRITE_EEPROM);
     });
     /**
      * Microcontroller Events

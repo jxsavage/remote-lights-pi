@@ -2,7 +2,7 @@ import IORedis from 'ioredis';
 import log from 'Shared/logger';
 import {
   MicroId, MicrosAndSegmentsEntity, SegmentId,
-} from 'Shared/store';
+} from 'Shared/types';
 import redisClient from './client';
 import {
   RedisAllLEDSegmentIdsSet, RedisAllMicroIdsSet,

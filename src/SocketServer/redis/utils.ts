@@ -1,4 +1,5 @@
-import { MicroId, SegmentId } from "Shared/store";
+import { MicroId, SegmentId } from "Shared/types";
+import { RedisLEDSegmentHash, RedisMicroHash } from "./types";
 
 /**
  * Generates segment boundary redis list key.
@@ -31,4 +32,12 @@ export function generateSegmentHashKey(segmentId: SegmentId | string): string {
  */
 export function generateMicroHashKey(microId: MicroId | string): string {
   return `Micro.${microId}.Hash`;
+}
+
+export function flattenObjectEntries(
+  obj: RedisMicroHash | RedisLEDSegmentHash
+  ): (string | number)[] {
+  return Object.entries(obj).reduce((keyValArr, keyVal) => {
+    return [...keyValArr, ...keyVal];
+  }, [] as unknown as (string | number)[]);
 }

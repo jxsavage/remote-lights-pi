@@ -1,5 +1,6 @@
 {
   "image": "192.168.0.2:5001/remote-lights_socket:development",
+  "updateRemoteUserUID": true,
   "extensions": [
 	"dbaeumer.vscode-eslint",
 	"mikestead.dotenv"
