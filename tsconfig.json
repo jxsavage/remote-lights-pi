@@ -21,5 +21,13 @@
   },
   "include": [
     "src/**/*"
-  ]
+  ],
+  "resolveSourceMapLocations": [
+    "${workspaceFolder}/**",
+    "!${workspaceFolder}/node_modules/typescript/**",
+    "!**/node_modules/typescript/**",
+    "!**/node_modules/ts-node/**",
+    "!**/acorn.js",
+    "!**/typescript.js.map",
+  ],
 }

@@ -5,19 +5,24 @@ import {
 } from 'Shared/types';
 import redisClient from './client';
 import {
+  RedisLEDSegmentHash, RedisMicroHash,
   RedisAllLEDSegmentIdsSet, RedisAllMicroIdsSet,
-  RedisLEDSegmentHash, RedisMicroHash, RedisSets,
   RedisMicroLEDSegmentsBoundaries, RedisMicroLEDSegmentsList,
-  generateMicroSegmentListKey, generateSegmentBoundariesListKey,
-  generateSegmentHashKey, generateMicroHashKey,
-} from 'SocketServer/redis';
+} from 'Shared/types';
+import keys from './utils';
+function isMicroMember(microId: string | MicroId): Promise<IORedis.BooleanResponse> {
+  return redisClient.sismember(keys.get.segmentIdSet(), String(microId));
+}
+export function isSegmentMember(segmendId: string | SegmentId): Promise<IORedis.BooleanResponse> {
+  return redisClient.sismember(keys.get.segmentIdSet(), String(segmendId));
+}
 /**
  * Adds SMEMBERS redis command to pipe to read all MicroIds.
  * @param pipe 
  * @returns The pipe with the command appended.
  */
 function readAllMicroIds(pipe: IORedis.Pipeline): IORedis.Pipeline {
-  return pipe.smembers(RedisSets.MicroIdSet);
+  return pipe.smembers(keys.get.microIdSet());
 }
 /**
  * Adds SMEMBERS redis command to pipe to read all SegmentIds.
@@ -25,7 +30,7 @@ function readAllMicroIds(pipe: IORedis.Pipeline): IORedis.Pipeline {
  * @returns The pipe with the command appended.
  */
 function readAllSegmentIds(pipe: IORedis.Pipeline): IORedis.Pipeline {
-  return pipe.smembers(RedisSets.SegmentIdSet);
+  return pipe.smembers(keys.get.segmentIdSet());
 }
 type RedisMicrosAndSegmentIdsResponse = [
   [Error | null, RedisAllMicroIdsSet],
@@ -54,8 +59,9 @@ async function readAllSegmentAndMicroIds():
  * @param microId 
  * @returns The pipe with the command appended.
  */
-function readMicroHash(pipe: IORedis.Pipeline , microId: MicroId | string): IORedis.Pipeline {
-  return pipe.hgetall(generateMicroHashKey(microId));
+export function readMicroHash(pipe: IORedis.Pipeline , microId: MicroId | string): IORedis.Pipeline {
+  const key = keys.get.microHashKey(microId);
+  return pipe.hgetall(key);
 }
 /**
  * Append LRANGE to the pipe on a micros segment list to retrieve it.
@@ -63,8 +69,8 @@ function readMicroHash(pipe: IORedis.Pipeline , microId: MicroId | string): IORe
  * @param microId 
  * @returns The pipe with the command appended.
  */
-function readMicroSegmentsList(pipe: IORedis.Pipeline, microId: MicroId | string): IORedis.Pipeline {
-  return pipe.lrange(generateMicroSegmentListKey(microId), 0, -1);
+export function readMicroSegmentsList(pipe: IORedis.Pipeline, microId: MicroId | string): IORedis.Pipeline {
+  return pipe.lrange(keys.get.microSegmentListKey(microId), 0, -1);
 }
 /**
  * Append LRANGE to the pipe on a micros segment boundaries list to retrive it.
@@ -72,8 +78,8 @@ function readMicroSegmentsList(pipe: IORedis.Pipeline, microId: MicroId | string
  * @param microId 
  * @returns The pipe with the command appended.
  */
-function readMicroSegmentBoundaries(pipe: IORedis.Pipeline, microId: MicroId | string): IORedis.Pipeline {
-  return pipe.lrange(generateSegmentBoundariesListKey(microId), 0, -1);
+export function readMicroSegmentBoundaries(pipe: IORedis.Pipeline, microId: MicroId | string): IORedis.Pipeline {
+  return pipe.lrange(keys.get.segmentBoundariesListKey(microId), 0, -1);
 }
 /**
  * Append HGETALL to the pipe on a LEDSegments hash to retrieve it.
@@ -81,19 +87,20 @@ function readMicroSegmentBoundaries(pipe: IORedis.Pipeline, microId: MicroId | s
  * @param segmentId 
  * @returns The pipe with the command appended.
  */
-function readSegmentHash(pipe: IORedis.Pipeline , segmentId: SegmentId | string): IORedis.Pipeline {
-  return pipe.hgetall(generateSegmentHashKey(segmentId));
+export function readSegmentHash(pipe: IORedis.Pipeline , segmentId: SegmentId | string): IORedis.Pipeline {
+  return pipe.hgetall(keys.get.segmentHashKey(segmentId));
 }
 /**
  * Reads all the Micros and LEDSegments in Redis.
  * @returns A Promise of MicrosAndSegmentsEntity.
  */
 export async function readMicros(): Promise<MicrosAndSegmentsEntity> {
-  const allIds = await readAllSegmentAndMicroIds();
-  const [[microsErr ,allMicroIds],[segmentsErr, allSegmentIds]
-  ] = allIds;
-  if(microsErr || segmentsErr) {
-    log('bgRed', `ERROR: micros: ${microsErr}, segments: ${segmentsErr}`)
+  const allIdsResponse = await readAllSegmentAndMicroIds();
+  const [
+    [allMicroIdErr, allMicroIds],[AllSegIdErr, allSegmentIds]
+  ] = allIdsResponse;
+  if(allMicroIdErr || AllSegIdErr) {
+    throw new Error('Error getting MicroId and SegmentId Sets.')
   }
   const multi = redisClient.multi();
   allMicroIds.forEach((microId) => {
@@ -109,9 +116,13 @@ export async function readMicros(): Promise<MicrosAndSegmentsEntity> {
   const microsResults = results.slice(0, microIndices);
   const microsById: MicrosAndSegmentsEntity['micros']['byId'] = {};
   for(let i = 0; i < microIndices; i+=3) {
-    const {microId, totalLEDs, brightness}: RedisMicroHash = microsResults[i][1];
-    const segmentsList: RedisMicroLEDSegmentsList = microsResults[i+1][1];
-    const segmentBoundaries: RedisMicroLEDSegmentsBoundaries = microsResults[i+2][1];
+    const [microHashErr, microHash] = microsResults[i];
+    const [microSegListErr, segmentsList] = microsResults[i+1];
+    const [segBoundariesErr, segmentBoundaries] = microsResults[i+2];
+    if(microHashErr || microSegListErr || segBoundariesErr) {
+      throw new Error('Bad response from redis server in read micros.')
+    }
+    const {microId, totalLEDs, brightness}: RedisMicroHash = microHash;
     microsById[microId] = {
       microId: Number(microId),
       totalLEDs: Number(totalLEDs),

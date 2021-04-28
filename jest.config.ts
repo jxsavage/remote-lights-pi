@@ -11,6 +11,8 @@ const config: InitialOptionsTsJest = {
   },
   moduleNameMapper: {
     '^Shared/(.*)$': '<rootDir>/src/Shared/$1',
-  }
+    '^SocketServer/(.*)$': '<rootDir>/src/SocketServer/$1',
+  },
+  collectCoverage: true,
 }
 export default config

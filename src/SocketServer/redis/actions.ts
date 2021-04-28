@@ -9,9 +9,8 @@ import {
   writeSegmentIdsToMicroList, writeSegments
 } from './writeMicros';
 import redisClient from './client';
-import { RedisExecResults, RedisLEDSegmentHashField, RedisMicroHashField, RedisSets } from './types';
-import { generateMicroHashKey, generateSegmentHashKey } from './utils';
-import { SegmentId } from 'Shared/types';
+import keys from './utils';
+import { SegmentId, RedisExecResults, RedisLEDSegmentHashField, RedisMicroHashField } from 'Shared/types';
 
 export async function writeSplitSegment({
   microId, segmentBoundaries, segmentIds,
@@ -24,12 +23,12 @@ export async function writeSplitSegment({
   const results = await multi.exec();
   return results;
 }
-function removeSegmentHash(
-  pipe: IORedis.Pipeline, segmentId: SegmentId,
+export function removeSegmentHash(
+  pipe: IORedis.Pipeline, segmentId: SegmentId | string,
   ): IORedis.Pipeline {
     return pipe
-      .srem(RedisSets.SegmentIdSet, segmentId)
-      .del(generateSegmentHashKey(segmentId));
+      .srem(keys.get.segmentIdSet(), segmentId)
+      .del(keys.get.segmentHashKey(segmentId));
 }
 export async function writeMergeSegments({
   microId, segmentIds, LEDSegments,
@@ -48,8 +47,9 @@ export async function writeSetSegmentEffect({
   newEffect, segmentId
 }: SetSegmentEffectRedisPayload): RedisExecResults {
   const multi = redisClient.multi();
+  const {key} = keys.generate.segmentHashKey(segmentId);
   multi.hset(
-    generateSegmentHashKey(segmentId),
+    key,
     RedisLEDSegmentHashField.effect,
     newEffect,
   );
@@ -61,8 +61,9 @@ export async function writeSetMicroBrightness({
   brightness, microId
 }: SetMicroBrightnessRedisPayload): RedisExecResults {
   const multi = redisClient.multi();
+  const {key} = keys.generate.microHashKey(microId);
   multi.hset(
-    generateMicroHashKey(microId),
+    key,
     RedisMicroHashField.brightness,
     brightness,
   );
@@ -74,8 +75,9 @@ function writeSegmentOffsetAndNumLEDs(
   offsetAndNumLEDs: ResizeSegmentsFromBoundariesRedisPayload['offsetAndNumLEDs'],
   ): IORedis.Pipeline {
     offsetAndNumLEDs.forEach(({offset, numLEDs, segmentId}) => {
+      const {key} = keys.generate.segmentHashKey(segmentId);
       pipe.hset(
-        generateSegmentHashKey(segmentId),
+        key,
         RedisLEDSegmentHashField.offset, offset,
         RedisLEDSegmentHashField.numLEDs, numLEDs
       );
