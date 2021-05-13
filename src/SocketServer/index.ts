@@ -89,8 +89,8 @@ io
         socket.to(String(microId)).emit(type, payload);
     });
 
-    socket.on(MicroActionType.RESET_MICRO_STATE, (microId: MicroId) => {
-      socket.to(String(microId)).emit(MicroActionType.RESET_MICRO_STATE);
+    socket.on(MicroActionType.RESET_MICRO, (microId: MicroId) => {
+      socket.to(String(microId)).emit(MicroActionType.RESET_MICRO);
     });
     socket.on(MicroActionType.WRITE_EEPROM, (microId: MicroId) => {
       socket.to(String(microId)).emit(MicroActionType.WRITE_EEPROM);
@@ -98,6 +98,13 @@ io
     /**
      * Microcontroller Events
      */
+    socket.on('LOAD_EEPROM', (microId: MicroState['microId']) => {
+      log('info', `Load EEPROM sending to ${microId}`)
+      socket.to(String(microId)).emit('LOAD_EEPROM');
+    });
+    socket.on('RESET_MICRO', (microId: MicroState['microId']) => {
+      socket.to(String(microId)).emit('RESET_MICRO');
+    });
     socket.on(MicroEmitEvent.INIT_MICRO, (microId: MicroState['microId']) => {
       socket.join(SocketDestination.MICROS)
       socket.join(String(microId));
