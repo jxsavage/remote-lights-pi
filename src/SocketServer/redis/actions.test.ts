@@ -1,10 +1,17 @@
 import {
   writeMergeSegments, writeResizeSegmentsFromBoundaries,
   writeSetMicroBrightness, writeSetSegmentEffect,
-  writeSplitSegment, flushAllRedis, removeSegmentHash
+  writeSplitSegment, removeSegmentHash
 } from './actions';
-import { isSegmentMember, readMicroHash, readMicros, readMicroSegmentBoundaries, readMicroSegmentsList, readSegmentHash } from './readMicros';
-import { writeMicroHash, writeMicros, writeSegment, writeSegmentBoundaries, writeSegmentHash, writeSegmentIdsToMicroList, writeSegmentToSet } from './writeMicros';
+import { 
+  isSegmentMember, readMicroHash, readMicros,
+  readMicroSegmentBoundaries, readMicroSegmentsList,
+  readSegmentHash,
+} from './readMicros';
+import {
+  writeMicroHash, writeMicros, writeSegment,
+  writeSegmentBoundaries, writeSegmentIdsToMicroList,
+} from './writeMicros';
 import testData from 'Shared/test';
 import {
   splitSegmentRedis, mergeSegmentsRedis,
@@ -12,9 +19,8 @@ import {
   resizeSegmentsFromBoundariesRedis
 } from 'Shared/redis';
 import { RemoteLightsEntity } from 'Shared/types';
-import redisClient from './client';
+import redisClient from 'SocketServer/redis';
 import keys from './utils';
-import { resizeSegmentsFromBoundaries } from 'Shared/store';
 beforeEach(async () => {
   const allKeys = await redisClient.smembers(keys.get.keyIndex());
   if(allKeys.length) {

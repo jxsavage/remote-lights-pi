@@ -3,16 +3,22 @@ import {
   MicroId, SegmentId,
   RedisLEDSegmentHash, RedisMicroHash
  } from "Shared/types";
-import redisClient from "./client";
+import { BluetoothDevice, ClientId } from "Shared/types/client";
+ import redisClient from 'SocketServer/redis';
 
 
 enum RedisSets {
   MicroIdSet = "MicroId.Set",
   SegmentIdSet = "SegmentId.Set",
   KeyIndexSet = "Key.Set",
+  ClientIdSet = "ClientId.Set",
+  BTAddressSet = "BTAddress.Set"
 }
 
-const {MicroIdSet, SegmentIdSet, KeyIndexSet} = RedisSets;
+const {
+  MicroIdSet, SegmentIdSet, KeyIndexSet, ClientIdSet,
+  BTAddressSet
+} = RedisSets;
 
 function getKeyIndex(): string {
   return KeyIndexSet;
@@ -23,6 +29,40 @@ function getMicroIdSet(): string {
 function getSegmentIdSet(): string {
   return SegmentIdSet;
 }
+function getClientIdSet(): string {
+  return ClientIdSet;
+}
+function getBTAddressSet(): string {
+  return BTAddressSet;
+}
+function getBluetoothDeviceHashKey(address: string) {
+  return `BluetoothDevice.${address}.Hash`
+}
+/**
+ * Generates a Clients micros set key.
+ * @param clientId
+ * @returns Clients micros set key
+ */
+ function getClientMicrosSetKey(clientId: ClientId | string): string {
+  return `Client.${clientId}.Micros.Set`;
+}
+/**
+ * Generates a clients visible bt device set key.
+ * @param clientId 
+ * @returns Clients connected bt device set key.
+ */
+function getClientConnectedBTDevicesSetKey(clientId: ClientId | string): string {
+  return `Client.${clientId}.ConnectedBT.Set`;
+}
+/**
+ * Generates a clients visible bt device set key.
+ * @param clientId 
+ * @returns Clients visible bt device set key.
+ */
+function getClientVisibleBTDevicesSetKey(clientId: ClientId | string): string {
+  return `Client.${clientId}.VisibleBT.Set`;
+}
+
 /**
  * Generates segment boundary redis list key.
  * @param microId 
@@ -62,7 +102,7 @@ function addKeyToIndex(key: string): KeyAndPromise {
   return {key, promise};
 }
 type genkp = (key: number | string) => KeyAndPromise
-type genfn = (key: number | string) => string;
+type genfn = ((key: number | string) => string) | ((key: string) => string);
 function generateWithArg(fn: genfn): genkp {
   return (key: string | number): KeyAndPromise => {
     const k = String(key);
@@ -79,7 +119,7 @@ function generate(key: number | string): strfn {
   };
 }
 export function flattenObjectEntries(
-  obj: RedisMicroHash | RedisLEDSegmentHash
+  obj: RedisMicroHash | RedisLEDSegmentHash | BluetoothDevice
   ): (string | number)[] {
   return Object.entries(obj).reduce((keyValArr, keyVal) => {
     return [...keyValArr, ...keyVal];
@@ -92,21 +132,33 @@ export function flattenObjectEntries(
  */
 const defaults = {
   generate: {
+    microHash: generateWithArg(getMicroHashKey),
     microIdSet: generate(getMicroIdSet()),
+    clientIdSet: generate(getClientIdSet()),
+    segmentHash: generateWithArg(getSegmentHashKey),
     segmentIdSet: generate(getSegmentIdSet()),
-    microHashKey: generateWithArg(getMicroHashKey),
-    segmentHashKey: generateWithArg(getSegmentHashKey),
-    microSegmentListKey: generateWithArg(getMicroSegmentListKey),
-    segmentBoundariesListKey: generateWithArg(getSegmentBoundariesListKey),
+    btAddressSet: generate(getBTAddressSet()),
+    clientMicrosSet: generateWithArg(getClientMicrosSetKey),
+    microSegmentList: generateWithArg(getMicroSegmentListKey),
+    segmentBoundariesList: generateWithArg(getSegmentBoundariesListKey),
+    clientVisibleBTDevicesSet: generateWithArg(getClientVisibleBTDevicesSetKey),
+    clientConnectedBTDevicesSet: generateWithArg(getClientConnectedBTDevicesSetKey),
+    bluetoothDeviceHash: generateWithArg(getBluetoothDeviceHashKey),
   },
   get: {
     keyIndex: getKeyIndex,
     microIdSet: getMicroIdSet,
+    clientIdSet: getClientIdSet,
     segmentIdSet: getSegmentIdSet,
     microHashKey: getMicroHashKey,
+    btAddressSet: getBTAddressSet,
+    clientMicrosSet: getClientMicrosSetKey,
     segmentHashKey: getSegmentHashKey,
     microSegmentListKey: getMicroSegmentListKey,
     segmentBoundariesListKey: getSegmentBoundariesListKey,
+    clientVisibleBTDevicesSet: getClientVisibleBTDevicesSetKey,
+    clientConnectedBTDevicesSet: getClientConnectedBTDevicesSetKey,
+    bluetoothDeviceHash: getBluetoothDeviceHashKey,
   }
 }
 export default defaults;

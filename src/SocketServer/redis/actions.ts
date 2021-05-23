@@ -8,7 +8,7 @@ import {
   writeSegmentBoundaries,
   writeSegmentIdsToMicroList, writeSegments
 } from './writeMicros';
-import redisClient from './client';
+import redisClient from 'SocketServer/redis';
 import keys from './utils';
 import { SegmentId, RedisExecResults, RedisLEDSegmentHashField, RedisMicroHashField } from 'Shared/types';
 
@@ -47,7 +47,7 @@ export async function writeSetSegmentEffect({
   newEffect, segmentId
 }: SetSegmentEffectRedisPayload): RedisExecResults {
   const multi = redisClient.multi();
-  const {key} = keys.generate.segmentHashKey(segmentId);
+  const {key} = keys.generate.segmentHash(segmentId);
   multi.hset(
     key,
     RedisLEDSegmentHashField.effect,
@@ -61,7 +61,7 @@ export async function writeSetMicroBrightness({
   brightness, microId
 }: SetMicroBrightnessRedisPayload): RedisExecResults {
   const multi = redisClient.multi();
-  const {key} = keys.generate.microHashKey(microId);
+  const {key} = keys.generate.microHash(microId);
   multi.hset(
     key,
     RedisMicroHashField.brightness,
@@ -75,7 +75,7 @@ function writeSegmentOffsetAndNumLEDs(
   offsetAndNumLEDs: ResizeSegmentsFromBoundariesRedisPayload['offsetAndNumLEDs'],
   ): IORedis.Pipeline {
     offsetAndNumLEDs.forEach(({offset, numLEDs, segmentId}) => {
-      const {key} = keys.generate.segmentHashKey(segmentId);
+      const {key} = keys.generate.segmentHash(segmentId);
       pipe.hset(
         key,
         RedisLEDSegmentHashField.offset, offset,

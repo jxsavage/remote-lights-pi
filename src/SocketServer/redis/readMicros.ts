@@ -3,11 +3,10 @@ import log from 'Shared/logger';
 import {
   MicroId, MicrosAndSegmentsEntity, SegmentId,
 } from 'Shared/types';
-import redisClient from './client';
+import redisClient from 'SocketServer/redis';
 import {
   RedisLEDSegmentHash, RedisMicroHash,
   RedisAllLEDSegmentIdsSet, RedisAllMicroIdsSet,
-  RedisMicroLEDSegmentsBoundaries, RedisMicroLEDSegmentsList,
 } from 'Shared/types';
 import keys from './utils';
 function isMicroMember(microId: string | MicroId): Promise<IORedis.BooleanResponse> {

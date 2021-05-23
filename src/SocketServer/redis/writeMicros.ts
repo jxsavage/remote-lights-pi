@@ -4,7 +4,7 @@ import {
   LEDSegment, MicroId, SegmentId,
 } from 'Shared/types'
 import { AddMicrosPayload } from 'Shared/store';
-import redisClient from './client';
+import redisClient from 'SocketServer/redis';
 import keys, { flattenObjectEntries } from './utils';
 
 
@@ -31,7 +31,7 @@ function writeMicroIdToSet(
 export function writeSegmentBoundaries(
   pipe: IORedis.Pipeline, microId: MicroId, boundaries: number[]
   ): IORedis.Pipeline {
-  const {key} = keys.generate.segmentBoundariesListKey(microId);
+  const {key} = keys.generate.segmentBoundariesList(microId);
   return pipe
           .lpush(key, ...boundaries.map(String).reverse())
           .ltrim(key, 0, boundaries.length - 1);
@@ -50,7 +50,7 @@ export function writeMicroHash(
   hash: RedisMicroHash,
   ): IORedis.Pipeline {
     const { microId } = hash;
-    const {key} = keys.generate.microHashKey(microId);
+    const {key} = keys.generate.microHash(microId);
     return pipe.hmset(
         key,
         ...flattenObjectEntries(hash));
@@ -77,7 +77,7 @@ export function writeSegmentToSet(
 export function writeSegmentIdsToMicroList(
   pipe: IORedis.Pipeline, microId: MicroId, segmentIds: SegmentId[]
   ): IORedis.Pipeline {
-    const {key} = keys.generate.microSegmentListKey(microId);
+    const {key} = keys.generate.microSegmentList(microId);
     return pipe
             .lpush(key, [...segmentIds].reverse())
             .ltrim(key, 0, segmentIds.length - 1);

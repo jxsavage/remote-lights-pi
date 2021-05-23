@@ -19,6 +19,7 @@ import {
   SetMicroBrightnessRedisAction, SetSegmentEffectRedisAction,
   SplitSegmentRedisAction,
 } from "Shared/redis";
+import { MicroCommand } from "Shared/types/micro";
 
 const httpServer = createServer();
 const io = new Server(httpServer, {
@@ -98,12 +99,15 @@ io
     /**
      * Microcontroller Events
      */
-    socket.on('LOAD_EEPROM', (microId: MicroState['microId']) => {
+    socket.on(MicroCommand.LOAD_EEPROM, (microId: MicroState['microId']) => {
       log('info', `Load EEPROM sending to ${microId}`)
-      socket.to(String(microId)).emit('LOAD_EEPROM');
+      socket.to(String(microId)).emit(MicroCommand.LOAD_EEPROM);
     });
-    socket.on('RESET_MICRO', (microId: MicroState['microId']) => {
-      socket.to(String(microId)).emit('RESET_MICRO');
+    socket.on(MicroCommand.RESET, (microId: MicroState['microId']) => {
+      socket.to(String(microId)).emit(MicroCommand.RESET);
+    });
+    socket.on(MicroCommand.RESTORE_DEFAULT, (microId: MicroState['microId']) => {
+      socket.to(String(microId)).emit(MicroCommand.RESTORE_DEFAULT);
     });
     socket.on(MicroEmitEvent.INIT_MICRO, (microId: MicroState['microId']) => {
       socket.join(SocketDestination.MICROS)
