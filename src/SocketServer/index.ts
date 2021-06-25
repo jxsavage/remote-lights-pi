@@ -114,10 +114,16 @@ io
       socket.join(String(microId));
     });
     socket.on(MicroEntityActionType.ADD_MICROS, async (payload: AddMicrosPayload) => {
-      await writeMicros(payload).exec();
-      socket.broadcast
-          .to(SocketDestination.WEB_CLIENTS)
-          .emit(SharedEmitEvent.ROOT_ACTION, addMicros(payload));
+      try {
+        await writeMicros(payload).exec();
+        socket.broadcast
+            .to(SocketDestination.WEB_CLIENTS)
+            .emit(SharedEmitEvent.ROOT_ACTION, addMicros(payload));
+      } catch(err) {
+        log('bgRed', ` Error writing micros to redis. `);
+        log('textRed', JSON.stringify(payload, null, ' '));
+      }
+
     });
     socket.on('disconnect', () => {
       console.log('socket disconnected', socket.id);

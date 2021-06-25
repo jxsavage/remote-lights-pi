@@ -5,13 +5,13 @@
   "main": "src",
   "types": "src",
   "scripts": {
-    "start:dev": "node --inspect=5858 -r ts-node/register -r tsconfig-paths/register src/index.ts",
+    "start:dev": "node --inspect=5858 --trace-warnings -r ts-node/register -r tsconfig-paths/register src/index.ts",
     "dev": "nodemon --config nodemon.json",
     "build": "tsc",
     "start": "nodemon --config nodemon.prod.json",
     "start:prod": "node dist/index.js",
     "test": "jest",
-    "test:watch": "node --inspect=5959 ./node_modules/jest/bin/jest.js --watchAll --detectOpenHandles",
+    "test:watch": "node --inspect=5959 --trace-warnings ./node_modules/jest/bin/jest.js --watchAll --detectOpenHandles",
     "find-node": "ps -aef | grep node"
   },
   "author": "",

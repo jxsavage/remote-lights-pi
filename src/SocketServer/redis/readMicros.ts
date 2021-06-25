@@ -121,8 +121,9 @@ export async function readMicros(): Promise<MicrosAndSegmentsEntity> {
     if(microHashErr || microSegListErr || segBoundariesErr) {
       throw new Error('Bad response from redis server in read micros.')
     }
-    const {microId, totalLEDs, brightness}: RedisMicroHash = microHash;
+    const {microId, alias, totalLEDs, brightness}: RedisMicroHash = microHash;
     microsById[microId] = {
+      alias,
       microId: Number(microId),
       totalLEDs: Number(totalLEDs),
       brightness: Number(brightness),
@@ -135,8 +136,9 @@ export async function readMicros(): Promise<MicrosAndSegmentsEntity> {
   const segmentsResults = results.slice(segmentsStart, segmentIndices);
   const segmentsById: MicrosAndSegmentsEntity['segments']['byId'] = {};
   for(let i = 0; i < segmentsResults.length; i++) {
-    const {segmentId, microId, offset, numLEDs, effect, effectControlledBy}: RedisLEDSegmentHash = segmentsResults[i][1];
+    const {segmentId, microId, alias, offset, numLEDs, effect, effectControlledBy}: RedisLEDSegmentHash = segmentsResults[i][1];
     segmentsById[segmentId] = {
+      alias,
       segmentId: Number(segmentId),
       effect: Number(effect),
       offset: Number(offset),

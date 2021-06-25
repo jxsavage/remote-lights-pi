@@ -35,7 +35,7 @@ function getClientIdSet(): string {
 function getBTAddressSet(): string {
   return BTAddressSet;
 }
-function getBluetoothDeviceHashKey(address: string) {
+function getBluetoothDeviceHashKey(address: string): string {
   return `BluetoothDevice.${address}.Hash`
 }
 /**
@@ -120,10 +120,11 @@ function generate(key: number | string): strfn {
 }
 export function flattenObjectEntries(
   obj: RedisMicroHash | RedisLEDSegmentHash | BluetoothDevice
-  ): (string | number)[] {
-  return Object.entries(obj).reduce((keyValArr, keyVal) => {
+  ): (string)[] {
+  const kvArray = Object.entries(obj).reduce((keyValArr, keyVal) => {
     return [...keyValArr, ...keyVal];
-  }, [] as unknown as (string | number)[]);
+  }, [] as unknown as (string)[]);
+  return kvArray;
 }
 /**
  * Redis Key generators and getters.

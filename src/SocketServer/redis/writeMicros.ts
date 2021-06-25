@@ -90,12 +90,12 @@ export function writeSegmentIdsToMicroList(
  */
 export function writeSegmentHash(
   pipe: IORedis.Pipeline,
-  hash: RedisLEDSegmentHash
+  hash: LEDSegment
 ): IORedis.Pipeline {
   const {segmentId} = hash;
   return pipe.hmset(
       keys.get.segmentHashKey(segmentId),
-      ...flattenObjectEntries(hash));
+      ...flattenObjectEntries(hash as any));
 }
 /**
  * Appends the command to Write a Segments ID to the set and write the hash.
@@ -138,10 +138,15 @@ export function writeSegments(
  */
 function writeMicro(
   pipe: IORedis.Pipeline, microId: MicroId, totalLEDs: number,
-  brightness: number, LEDSegments: LEDSegment[]
+  brightness: number, LEDSegments: LEDSegment[], alias: string,
   ): IORedis.Pipeline {
     writeMicroIdToSet(pipe, microId);
-    writeMicroHash(pipe, {microId, totalLEDs, brightness});
+    writeMicroHash(pipe, {
+      alias,
+      microId: String(microId),
+      totalLEDs: String(totalLEDs),
+      brightness: String(brightness),
+    });
     writeSegments(pipe, LEDSegments);
     return pipe;
   }
@@ -157,10 +162,10 @@ export function writeMicros(
   const pipe = redisClient.multi();
   micros.allIds.reduce((microPipe, microId) => {
     writeMicroIdToSet(microPipe, microId);
-    const {brightness, totalLEDs, segmentIds, segmentBoundaries} = micros.byId[microId];
+    const {alias, brightness, totalLEDs, segmentIds, segmentBoundaries} = micros.byId[microId];
     writeSegmentBoundaries(microPipe, microId, segmentBoundaries);
     writeSegmentIdsToMicroList(microPipe, microId, segmentIds);
-    writeMicro(microPipe, microId, totalLEDs, brightness, segmentIds.map((segmentId) => segments.byId[segmentId]));
+    writeMicro(microPipe, microId, totalLEDs, brightness, segmentIds.map((segmentId) => segments.byId[segmentId]), alias);
     segmentIds.reduce((segmentPipe, segmentId) => {
       const LEDSegment = segments.byId[segmentId];
       writeSegment(segmentPipe, LEDSegment);

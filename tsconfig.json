@@ -22,6 +22,10 @@
   "include": [
     "src/**/*"
   ],
+  "paths": {
+    "SocketServer": ["./SocketServer"],
+
+  },
   "resolveSourceMapLocations": [
     "${workspaceFolder}/**",
     "!${workspaceFolder}/node_modules/typescript/**",
