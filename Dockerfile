@@ -1,10 +1,10 @@
-FROM node:14.16.0-alpine as development
+FROM node:14.16.0 as development
 
 WORKDIR /app
 
 COPY ["nodemon.json", "nodemon.prod.json", "package-lock.json", "package.json", "tsconfig.json", "./"]
 
-RUN apk add --no-cache make gcc g++ python linux-headers udev
+# RUN apk add --no-cache make gcc g++ python linux-headers udev
     
 ENTRYPOINT [ "npm", "run" ]
 
@@ -14,7 +14,7 @@ COPY . .
 
 RUN npm install
 
-RUN apk del make gcc g++ python linux-headers udev
+# RUN apk del make gcc g++ python linux-headers udev
 
 COPY src src/
 
